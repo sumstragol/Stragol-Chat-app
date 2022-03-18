@@ -1,0 +1,253 @@
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+
+Chat 
+
+------- ogolnie ------- 
+
+- dlaczego i dla kogo
+pracujac w firmie gdzie jest x stanowisk, biuro jest rozlegle,
+wydzialy podzielone, czasami ciezko jest przekazac jakas informacje do wszystkich,
+albo miedzy jakas grupa osob, gdzie kazda grupa ma swoje oddzielne zadania.
+
+jako ze ma byc to czesc srodowiska pracy, w gre wchodzi zwiekszenie produktywnosci - minimalizm
+
+prowadzenie rozmow na konferencjach grupowych, czy pojedynczymi pracownikami, kanal ogolny dla wszystkich -
+do ogloszen
+
+------- jak to bedzie wygladac, flow aplikacji ------- 
+
+MENU LOGOWANIA
+
+- jedno pole z napisem powitalnym(nazwa firmy, kampanii, wydzialu),
+inputy do zalogowania sie(tzn login haslo)
+
+---------------------------------------------------------------------------
+
+MENU
+
+--------- 
+|P     S| 
+|---B---|
+| xxLxx |
+| xxLxx |
+| xxLxx |
+| --K-- |
+---------
+
+P - zdjecie zalogowanego uzytkownika, po kliknieciu przenosi do profilu uzytkownika
+S - ustawienia aplikacji
+B - mini wyszukiwarka kontaktow/filtrowanie
+L - lista kontaktow, konfrencji
+K - status uzytkownika
+
+---------------------------------------------------------------------------
+
+CHAT 
+
+--------- 
+|<--N---| 
+|ttttttt|
+|ttttttt|
+|ttttttt|
+|ttttttt|
+|---I---|
+---------
+
+N - nazwa chatu, imie nazwisko jesli osoba, nazwa jesli konferencja
+< - powrot do menu
+t - pole wiadomosci {
+    - po prawej twoje kolorem x
+    - po lewej kogos kolorem y
+    - godzina w ktorej dana wiadomosc zostala wyslana
+}
+I - input na wiadomosc z pojedynczym przyciskiem 
+
+---------------------------------------------------------------------------
+
+USTAWIENIA
+
+- mozliwosci zmiany dzialania powiadomien {
+    dzwiek
+    powiadomienia
+}
+
+---------------------------------------------------------------------------
+
+PROFIL
+
+- mozliwosc zmiany opisu
+- mozliwosc zmiany koloru symbolu
+- mozliwosc zmiany zdjecia
+
+---------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+
+------- lista konkretnych funkcji ------- 
+
+** SYMBOL - kolo wiadomosci bedzie wyswietlac sie symbol, kazdy uzytkwonik bedzie mogl wybrac swoj 
+kolor, symbol zalezy od roli
+
+** UPRAWNIENIA/rola - podzial roli na administratora(jeden), moderatorow, zwyklych uzytkownikow
+administrator - zarzadza wszystkim, dostep do kazdej konferencji, dodaje moderatorow, dodaje uzytkownikow
+moderator - tworzy konferencje, dodaje/usuwa jej uczestnikow
+zwykly uzytkonwik - gdzie i co moze jest okreslone przez osoby z wyzszymi uprawnieniami
+
+** STATUS - pokazuje sie wszystkim innym uzytkownikom, dostepny, niedostepny, na przerwie
+
+** CHAT - widac czesc wiadomosci wyslanych przed twoim dolaczeniem, mozliwosc usuwania wiadomosci
+po kliknieciu prawym przyciskiem
+
+** KONFERENCJA - chat dla wielu pracownikow, po prawej stronie nad miejscem do pisania wiadomosci
+lista osob ktore uczestnicza w tej konferencji
+
+** KANAL OGOLNY - chat na ktorym pisac moga tylko uprawnione osoby, ale wszyscy moga odczytac wiadomosci
+na tym chatcie (ogloszenia dla wszystkich)
+    ** ANKIETY
+
+bazy danych
+                                               wszyscy uzytkownicy
+                                                    (id; rola)                                                       
+                                                        |                                                  
+                                                    uzytkonwik
+                                            (login; haslo; chat;)
+                                                        |
+                                    ---------------------------------------
+                                    |                                     |
+                                 profil                                 chat
+            (imie; nazwisko; stanowisko; opis; zdjecie;)             (id; z kim;)
+                                                                          |
+                                                                        tresc
+
+
+                                                    konferencje
+                                                        |
+                                                   (id; osoby) ----------- osoby
+                                                        |                  (id)
+                                                      tresc
+                                                        ()
+
+-------------------
+WSZYSCY UZYTKOWNICY 
+id - unikalne id kazdego uzytkownika w postaci 0000.asdf
+rola - admin/mod/zwykly
+
+UZYTKOWNIK
+(foreign key - id)
+login - za pomoca ktorego bedzie sie logowal
+haslo - ====
+chat - id bazy uzytkownika gdzie sa wszystkie id konwersacji
+
+PROFIL
+zdjecie - link
+
+CHAT
+(zbior wszystkich chatow od razu z informacja z jakim innym uzytkownikem jest ten chat)
+
+------------
+KONFENRENCJE
+id - konferencji
+osoby - id do bazy z osobami ktore maja dostep
+
+OSOBY 
+lista id osob
+
+TRESC
+
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+
+FLOW
+
+                    logowanie
+                        |
+                        |
+                    ---------
+                        |
+                        |
+                        |
+      profil -------- menu -------- ustawienia
+                        |
+                        |
+                        | -- profil kogos innego
+                        |
+                        |
+                      chat
+
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+
+SERVER - HOST
+
+- komunikacja w sieci
+
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+
+INSTRUMENTY
+
+python3
+
+- wszystko pod reka, wybudowane sqlite3, latwa implementacja server socket
+
+vsc
+sqlite - baza danych
+pyqt5 - gui
+plyer - powiadomienia systemowe
+
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+
+HARMONOGRAM
+
+07.04 - pracujacy modul do oblusgi baz danych 
+      - server (podstawy)
+---------------------------------------------      
+28.04 - gui (bardzo oddalone od zalozenia)
+      - ustawienia
+---------------------------------------------      
+28.05 - konferencja
+      - profile
+      - chat
+      - ankieta
+---------------------------------------------
+07.06 - oddanie projektu
+      
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+
+EWENTUALNE
+
+- gui dla servera
+- reakcje do wiadomosci (like/dislike)
+- odpowiedzi do wiadomosci 
