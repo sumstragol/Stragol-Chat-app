@@ -74,6 +74,7 @@ USTAWIENIA
 - mozliwosci zmiany dzialania powiadomien {
     dzwiek
     powiadomienia
+    haslo
 }
 
 ---------------------------------------------------------------------------
@@ -94,6 +95,8 @@ PROFIL
 ------------------------------------------------------------------------------------------------
 
 ------- lista konkretnych funkcji ------- 
+
+** PIERWSZE LOGOWANIE - haslo
 
 ** SYMBOL - kolo wiadomosci bedzie wyswietlac sie symbol, kazdy uzytkwonik bedzie mogl wybrac swoj 
 kolor, symbol zalezy od roli
@@ -188,6 +191,23 @@ FLOW
                         |
                       chat
 
+
+                    GDY ADMIN
+
+                    logowanie
+                        |
+                        |
+                    ---------
+                        |
+                        |
+                        |
+      profil -------- menu -------- ustawienia -------- panel dodawania
+                        |
+                        |
+                        | -- profil kogos innego
+                        |
+                        |
+                      chat
 ------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------

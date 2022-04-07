@@ -1,0 +1,73 @@
+{
+    "db_manager_dbs_info": 
+    {
+        "main_db": 
+        {
+            "database_name": "main_db",
+            "database_full_path": "dbs/main_db.db"
+        }
+    },
+
+    "server_info":
+    {
+        "port": 33230,
+        "ip": "127.0.0.1",
+        "header_size": 64,
+        "max_users_query_size": 250,
+        "format": "UTF-8"
+    },
+
+    "server_respond_messages":
+    {
+        "respond_to_create_new_chat":          0,
+        "respond_to_create_new_room":          1,
+        "respond_to_add_message":              2,
+        "respond_to_add_new_user":             3,
+        "respond_to_remove_user":              4,
+        "respond_to_check_if_login_is_in_use": 5
+    },
+
+    "server_answers_type":
+    {
+        "bool": 0
+    },
+
+    "queries_list":
+    {
+        "messages": 
+        {
+            "query_family": "messages",
+
+            "create_new_chat": 0,
+            "create_new_room": 1,
+            "add_message":     2    
+        },
+
+        "users":
+        {
+            "query_family": "users",
+
+            "add_new_user":             0,
+            "remove_user":              1,
+            "check_if_login_is_in_use": 2
+        }
+    },
+
+    "uis":
+    {
+        "login_form":
+        {
+            "path": "uis/login_form.ui"
+        },
+
+        "test":
+        {
+            "path": "uis/test.ui"
+        },
+
+        "add_new_user_form":
+        {
+            "path": "uis/add_new_user_form.ui"
+        }
+    }
+}
