@@ -30,20 +30,6 @@ def get_config_data():
 # ----------------------------------------------------
 # implents getters for any config part
 # ----------------------------------------------------
-
-# possiblity of specifing databases name 
-def get_db_data(db_name: str = None):
-    key = 'db_manager_dbs_info'
-    data = get_config_data()[key]
-
-    if db_name:
-        if not _key_in_data(db_name, data):
-            return None
-
-        return data[db_name]
-
-    return data    
-
 #
 # 
 #
@@ -85,6 +71,13 @@ def get_ui_data(which: str = None):
 
     return data
 
+
+#
+#
+#
+def get_user_data_indexes():
+    key = 'user_data_indexes'
+    return get_config_data()[key]
 
 #
 #

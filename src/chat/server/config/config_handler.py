@@ -70,41 +70,37 @@ def get_queries_list(type: str = None):
     return data
 
 
-#
-#
-#
-def get_ui_data(which: str = None):
-    key = 'uis'
-    data = get_config_data()[key]
-
-    if which:
-        if not _key_in_data(which, data):
-            return None
-
-        return data[which]
-
-    return data
-
 
 #
 #
 #
 def get_server_respond_messages():
-    return get_config_data()['server_respond_messages']
+    key = 'server_respond_messages'
+    return get_config_data()[key]
 
 
 #
 #
 #
-def get_server_answers():
-    return get_config_data()['server_answers_type']
+def get_dbs_users_chat_data():
+    key = 'dbs_users_chats'
+    return get_config_data()[key]
+
+
+#
+#
+#
+def get_recent_files_data():
+    key = 'recent_files_data'
+    return get_config_data()[key]
+
+
 
 
 #
 #
 #
 def main():
-    print("you should not be here!")
     exit()
 
 

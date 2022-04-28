@@ -8,6 +8,11 @@
         }
     },
 
+    "dbs_users_chats":
+    {
+        "path": "dbs_users_chats"
+    },
+
     "server_info":
     {
         "port": 33230,
@@ -19,17 +24,16 @@
 
     "server_respond_messages":
     {
-        "respond_to_create_new_chat":          0,
-        "respond_to_create_new_room":          1,
-        "respond_to_add_message":              2,
-        "respond_to_add_new_user":             3,
-        "respond_to_remove_user":              4,
-        "respond_to_check_if_login_is_in_use": 5
-    },
-
-    "server_answers_type":
-    {
-        "bool": 0
+        "respond_to_create_new_chat":           0,
+        "respond_to_create_new_room":           1,
+        "respond_to_add_message":               2,
+        "respond_to_add_new_user":              3,
+        "respond_to_remove_user":               4,
+        "respond_to_check_if_login_is_in_use":  5,
+        "respond_to_login_request":             6,
+        "respond_to_load_contacts":             7,
+        "respond_to_if_chat_exists":            8,
+        "respond_to_chat_init_data_load":       9
     },
 
     "queries_list":
@@ -38,9 +42,11 @@
         {
             "query_family": "messages",
 
-            "create_new_chat": 0,
-            "create_new_room": 1,
-            "add_message":     2    
+            "create_new_chat":      0,
+            "create_new_room":      1,
+            "add_message":          2,
+            "chat_init_data_load":  3,
+            "if_chat_exists":       4      
         },
 
         "users":
@@ -50,24 +56,27 @@
             "add_new_user":             0,
             "remove_user":              1,
             "check_if_login_is_in_use": 2
+        },
+
+        "login":
+        {
+            "query_family": "login",
+
+            "login_request": 0
+        },
+
+        "menu":
+        {
+            "query_family": "menu",
+
+            "load_contacts": 0
         }
     },
 
-    "uis":
+    "recent_files_data":
     {
-        "login_form":
-        {
-            "path": "uis/login_form.ui"
-        },
-
-        "test":
-        {
-            "path": "uis/test.ui"
-        },
-
-        "add_new_user_form":
-        {
-            "path": "uis/add_new_user_form.ui"
-        }
+        "max_possible_storage_size": 1000,
+        "init_storage_size": 20,
+        "storage_size_margin": 1
     }
 }

@@ -5,6 +5,7 @@
 # that query operates on
 # ----------------------------------------------------
 
+import os
 from config import config_handler
 import db_manager as dbm
 
@@ -22,10 +23,20 @@ def make_full_id(f_id: str) -> str:
     return  new_id_prefix + '.' + f_id
 
 
-# generate chat id based on users ids
-def gen_chat_id(first: str, second: str) -> str:
-    pass
+# get the chat id based on uids of users
+# it will always look the same 
+# so it can be created at any time anywhere where needed
+def get_chat_id(first_id: str, second_id: str) -> str:
+    # 'nnnn.aaaa's
+    f_prefix = first_id[:4]
+    s_prefix = second_id[:4]
 
+    return str(f_prefix + s_prefix)
+
+
+#
+def create_db_users_chat_file(path_with_file_included):
+    os.system(f'touch {path_with_file_included}')
 
 
 

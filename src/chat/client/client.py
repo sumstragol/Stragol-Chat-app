@@ -5,7 +5,6 @@
 # ----------------------------------------------------
 
 import json
-from logging.config import listen
 import socket
 from config import config_handler
 
@@ -21,8 +20,10 @@ _HEADER_SIZE = _SERVER_SETTINGS['header_size']
 _FORMAT = _SERVER_SETTINGS['format']
 
 # queries
+login_queries = config_handler.get_queries_list('login')
 messages_queries = config_handler.get_queries_list('messages')
 users_queries = config_handler.get_queries_list('users')
+menu_queries = config_handler.get_queries_list('menu')
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect(_ADDR)
@@ -53,6 +54,7 @@ def _send_any_query(content) -> None:
 # implemenation for listening to responses
 # ----------------------------------------------------
 
+#
 def _listen_to_any_response():
     response_length = client.recv(_HEADER_SIZE).decode(_FORMAT)
     response_length = int(response_length)
@@ -61,10 +63,7 @@ def _listen_to_any_response():
     return json.loads(response)['answer']
 
 
-
 # ----------------------------------------------------
-# implementation for sending messages queries or
-# anything closly related to message.
 # names of functions starts with keyword send,
 # but actual functions does send nothing themselves.
 # (sending happens in _send_any_query)
@@ -75,15 +74,38 @@ def _listen_to_any_response():
 # do all things in one function call. 
 # ----------------------------------------------------
 
+# ----------------------------------------------------
+# implementation for sending messages queries or
+# anything closly related to message.
+# ----------------------------------------------------
+
+# when user want to chat somebody he creates chat room page,
+# and its checked if conversation already happend if so - loading data
+# 
+def send_check_if_chat_exists(first_user_id: str, second_user_id: str):
+    content = {
+        'query_family':     messages_queries['query_family'],
+        'query_id':         messages_queries['if_chat_exists'],
+        'first_user_id':    first_user_id,
+        'second_user_id':   second_user_id
+    }
+    _send_any_query(content)
+
+    return _listen_to_any_response()
+
+
 # when table for chat doesnt exist yet (new conversation)
 # it prepares for 'new chat' query 
-def send_create_new_chat_query(first_person_id: str, second_person_id: str) -> None:
+def send_create_new_chat(first_user_id: str, second_user_id: str) -> None:
     content = {
-        'query_family': messages_queries['query_family'],
-        'query_id':   messages_queries['create_new_chat']
+        'query_family':     messages_queries['query_family'],
+        'query_id':         messages_queries['create_new_chat'],
+        'first_user_id':    first_user_id,
+        'second_user_id':   second_user_id
     }    
-
     _send_any_query(content)
+
+    return _listen_to_any_response()
 
 
 def send_create_new_room_query():
@@ -92,36 +114,80 @@ def send_create_new_room_query():
 
 # when in database table for chat already exists
 # it will only append new message to the table
-def send_add_message_query(message: str, sender: str, chat_id: str) -> None:
+def send_add_message(sender: str, chat_id: str, message: str) -> None:
     content = {
         'query_family': messages_queries['query_family'],
         'query_id':     messages_queries['add_message'],
         'sender':       sender,
         'chat_id':      chat_id,
-        'content':      message
+        'message':      message
     }
+    _send_any_query(content)
     
+    return _listen_to_any_response()
+
+
+# when entering the chat for the first time since lauching app
+def send_chat_init_data_load(first_user_id: str, second_user_id):
+    content = {
+        'query_family': messages_queries['query_family'],
+        'query_id':     messages_queries['chat_init_data_load'],
+        'sender':       first_user_id,
+        'receiver':     second_user_id
+    }
     _send_any_query(content)
 
+    return _listen_to_any_response()
 
-# only for a admin
-def send_add_new_user_query(data: dict) -> None:
+
+# ----------------------------------------------------
+# implementation for sending login request
+# ----------------------------------------------------
+
+def send_login_request(data: dict):
+    data['query_family'] = login_queries['query_family']
+    data['query_id']     = login_queries['login_request']
+    _send_any_query(data)
+
+    return _listen_to_any_response()
+
+
+# ----------------------------------------------------
+# implementation for menu queries
+# ----------------------------------------------------
+
+# menu - loading contacts
+def send_load_contacts(my_user_id):
+    content = {
+        'query_family': menu_queries['query_family'],
+        'query_id':     menu_queries['load_contacts'],
+        "my_user_id":   my_user_id
+    }
+    _send_any_query(content)
+
+    return _listen_to_any_response()
+
+
+# ----------------------------------------------------
+# implementation for queries adding new users
+# ----------------------------------------------------
+
+def send_add_new_user_query(data: dict):
     # whole data from form is already packed
     # adding headers 
     data['query_family'] = users_queries['query_family']
     data['query_id']     = users_queries['add_new_user']
-
     _send_any_query(data)
 
+    return _listen_to_any_response()
 
-# only for a admin
-def send_check_if_login_is_in_use(login: str) -> bool:
+
+def send_check_if_login_is_in_use(login: str):
     content = {
         'query_family': users_queries['query_family'],
         'query_id':     users_queries['check_if_login_is_in_use'],
         'login':        login
     }
-
     _send_any_query(content)
 
     return _listen_to_any_response()

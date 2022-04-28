@@ -20,7 +20,6 @@ def make_all_users(conn, cur):
             )
         '''
     )
-
     # adding admin account as a default
     cur.execute(
         '''
@@ -28,7 +27,6 @@ def make_all_users(conn, cur):
             values('0000.adad', 'admin')
         '''
     )
-
     conn.commit()
 
 
@@ -47,7 +45,6 @@ def make_users(conn, cur):
             )
         '''
     )
-
     # adding admin as a default
     cur.execute(
         '''
@@ -55,7 +52,6 @@ def make_users(conn, cur):
             values('0000.adad', 'admin', 'admin')
         '''
     )
-
     conn.commit()    
 
 
@@ -77,7 +73,6 @@ def make_profiles(conn, cur):
             )
         '''
     )
-
     # adding admin profile as a default
     cur.execute(
         '''
@@ -85,7 +80,25 @@ def make_profiles(conn, cur):
             values('0000.adad', '', '', '', '', '')
         '''
     )
+    conn.commit()
 
+
+#
+# chat_lists
+#
+def make_chats_list(conn, cur):
+    cur.execute(
+        '''
+            CREATE TABLE IF NOT EXISTS chats_list
+            (
+                id integer primary key autoincrement not null,
+                chat_id varchar(8),
+                first_user_id varchar(9),
+                second_user_id varchar(9),
+                path varchar
+            )
+        '''
+    )
     conn.commit()
 
 
@@ -93,15 +106,16 @@ def main():
     db_path = config_handler.get_db_data('main_db')['database_full_path']
 
     connection = sqlite3.connect(db_path)
-    cursor = connection.cursor();
+    cursor = connection.cursor()
 
     # 1
-    make_all_users(connection, cursor)
+    #make_all_users(connection, cursor)
     # 2
-    make_users(connection, cursor)
+    #make_users(connection, cursor)
     # 3 
-    make_profiles(connection, cursor)
-
+    #make_profiles(connection, cursor)
+    # 4
+    make_chats_list(connection, cursor)
 
 
 if __name__ == '__main__':

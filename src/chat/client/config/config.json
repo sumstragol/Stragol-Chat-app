@@ -1,13 +1,4 @@
 {
-    "db_manager_dbs_info": 
-    {
-        "main_db": 
-        {
-            "database_name": "main_db",
-            "database_full_path": "dbs/main_db.db"
-        }
-    },
-
     "server_info":
     {
         "port": 33230,
@@ -17,30 +8,17 @@
         "format": "UTF-8"
     },
 
-    "server_respond_messages":
-    {
-        "respond_to_create_new_chat":          0,
-        "respond_to_create_new_room":          1,
-        "respond_to_add_message":              2,
-        "respond_to_add_new_user":             3,
-        "respond_to_remove_user":              4,
-        "respond_to_check_if_login_is_in_use": 5
-    },
-
-    "server_answers_type":
-    {
-        "bool": 0
-    },
-
     "queries_list":
     {
         "messages": 
         {
             "query_family": "messages",
 
-            "create_new_chat": 0,
-            "create_new_room": 1,
-            "add_message":     2    
+            "create_new_chat":     0,
+            "create_new_room":     1,
+            "add_message":         2,
+            "chat_init_data_load": 3,
+            "if_chat_exists":      4   
         },
 
         "users":
@@ -50,6 +28,20 @@
             "add_new_user":             0,
             "remove_user":              1,
             "check_if_login_is_in_use": 2
+        },
+
+        "login":
+        {
+            "query_family": "login",
+
+            "login_request": 0
+        },
+
+        "menu":
+        {
+            "query_family": "menu",
+
+            "load_contacts": 0
         }
     },
 
@@ -57,17 +49,42 @@
     {
         "login_form":
         {
-            "path": "uis/login_form.ui"
+            "path": "uis/login_form.ui",
+            "widget_width": 426,
+            "widget_height": 761
         },
 
-        "test":
+        "chat":
         {
-            "path": "uis/test.ui"
+            "path": "uis/chat.ui",
+            "widget_width": 611,
+            "widget_height": 761
         },
 
         "add_new_user_form":
         {
-            "path": "uis/add_new_user_form.ui"
+            "path": "uis/add_new_user_form.ui",
+            "widget_width": 675,
+            "widget_height": 761
+        },
+
+        "menu":
+        {
+            "path": "uis/menu.ui",
+            "widget_width": 611,
+            "widget_height": 761
         }
+    },
+
+    "user_data_indexes":
+    {
+        "user_id":     0,
+        "role":        1,
+        "name":        2,
+        "surname":     3,
+        "position":    4,
+        "description": 5,
+        "image":       6
     }
 }
+

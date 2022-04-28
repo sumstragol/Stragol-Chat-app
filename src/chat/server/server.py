@@ -8,11 +8,11 @@
 # validiting and then performing requested queries
 # ----------------------------------------------------
 
-from email import header
 import json
 import socket
 import threading
 import os
+
 from config import config_handler
 import db_manager as dbm
 
@@ -60,16 +60,94 @@ def _encode_any_content(content):
 #
 #
 def respond_to_client(respond_id: int, data: dict):
+    # ----------------------------------------------------
+    # implemenation for response related to login form
+    # ----------------------------------------------------
+
+    if respond_id == _SERVER_RESPOND_MESSAGES['respond_to_login_request']:
+        login = data['login']
+        password = data['password']
+        result = dbm.Main_DBM().handle_login_request(login, password)
+        response = {
+            'answer': result
+        }
+        return _encode_any_content(response)
+
+
+    # ----------------------------------------------------
+    # implemenation for response related to menu
+    # ----------------------------------------------------
+
+    if respond_id == _SERVER_RESPOND_MESSAGES['respond_to_load_contacts']:
+        requested_by = data['my_user_id']
+        result = dbm.Main_DBM().load_contacts(requested_by)
+        response = {
+            'answer': result
+        }
+        return _encode_any_content(response)
+
+    # ----------------------------------------------------
+    # implemenation for responses related to messages
+    # ----------------------------------------------------
+
+    if respond_id == _SERVER_RESPOND_MESSAGES['respond_to_if_chat_exists']:
+        fuid = data['first_user_id']
+        suid = data['second_user_id']
+        chat_id = dbm.Main_DBM().check_if_chat_exists(fuid, suid)
+        response = {
+            'answer': chat_id
+        }
+        return _encode_any_content(response)
+
+    if respond_id == _SERVER_RESPOND_MESSAGES['respond_to_create_new_chat']:
+        fuid = data['first_user_id']
+        suid = data['second_user_id']
+        chat_id = dbm.Main_DBM().check_if_chat_exists(fuid, suid)
+        result = True
+        if chat_id is None: result = False
+        response = {
+            'answer': result
+        }
+        return _encode_any_content(response)
+
+    if respond_id == _SERVER_RESPOND_MESSAGES['respond_to_chat_init_data_load']:
+        fuid = data['sender']
+        suid = data['receiver']
+        chat_init_data = dbm.Main_DBM().get_chat_init_data(fuid, suid)
+        response = {
+            'answer': chat_init_data
+        }
+        return _encode_any_content(response)
+
+    if respond_id == _SERVER_RESPOND_MESSAGES['respond_to_add_message']:
+        response = {
+            'answer': 1
+        }
+        return _encode_any_content(response)
+
+    # ----------------------------------------------------
+    # implemenation for responses related to users
+    # ----------------------------------------------------
+
     if respond_id == _SERVER_RESPOND_MESSAGES['respond_to_check_if_login_is_in_use']:
         login = data['login']
         answer = dbm.Main_DBM().check_if_login_is_in_use(login)
-        print(answer)
-
-        respond_message = {
+        response = {
             'answer': answer
         }
+        return _encode_any_content(response)
+    
+    if respond_id == _SERVER_RESPOND_MESSAGES['respond_to_add_new_user']:
+        login = data['login']
+        answer = dbm.Main_DBM().check_if_user_successfully_added(login)
+        response = {
+            'answer': answer
+        }
+        return _encode_any_content(response)
+    
 
-        return _encode_any_content(respond_message)
+
+
 
 # 
 #
@@ -85,13 +163,14 @@ def connection_handling(conn, addr):
         message_length = int(message_length)
         query = conn.recv(message_length).decode(_FORMAT)
         # developing only
-        print(f"{addr} {query}")
+        print(f" SERVER QUERY: {addr} {query}\n")
         respond_id = main_db.handle_query(json.loads(query))
         
         if respond_id > -1:
             header, content = respond_to_client(respond_id, json.loads(query))
             conn.send(header)
             conn.send(content)
+            
 
 
     disconnect_handling(conn, addr)
