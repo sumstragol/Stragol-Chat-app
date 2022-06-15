@@ -7,13 +7,25 @@
 import os
 import json
 
-# helper function
+# helper functions
 def _key_in_data(key, data):
     if key not in data:
         print(f"[ERROR] key {key}, not found in json data")
         return False
     
     return True
+
+
+def _type_of_data(type, data):
+    if type:
+        if not _key_in_data(type, data):
+            return None
+
+        return data[type]
+
+    return data
+
+
 
 
 # absolute path of config file
@@ -35,14 +47,8 @@ def get_config_data():
 def get_db_data(db_name: str = None):
     key = 'db_manager_dbs_info'
     data = get_config_data()[key]
+    return _type_of_data(db_name, data)  
 
-    if db_name:
-        if not _key_in_data(db_name, data):
-            return None
-
-        return data[db_name]
-
-    return data    
 
 #
 # 
@@ -60,16 +66,16 @@ def get_server_data():
 def get_queries_list(type: str = None):
     key = 'queries_list'
     data = get_config_data()[key]
+    return _type_of_data(type, data)
 
-    if type:
-        if not _key_in_data(type, data):
-            return None
-
-        return data[type]
-
-    return data
-
-
+    
+#
+#
+#
+def get_pending_notifications_list(type: str = None):
+    key = 'pending_notifications'
+    return get_config_data()[key]
+    
 
 #
 #
@@ -95,6 +101,13 @@ def get_recent_files_data():
     return get_config_data()[key]
 
 
+#
+#
+#
+def get_active_statuses_list(what: str):
+    key = 'active_statuses'
+    data = get_config_data()[key]
+    return _type_of_data(what, data)  
 
 
 #

@@ -12,13 +12,41 @@
     {
         "messages": 
         {
-            "query_family": "messages",
+            "query_family":                     "messages",
 
-            "create_new_chat":     0,
-            "create_new_room":     1,
-            "add_message":         2,
-            "chat_init_data_load": 3,
-            "if_chat_exists":      4   
+            "create_new_chat":                  0,
+            "create_new_room":                  1,
+            "add_message":                      2,
+            "chat_init_data_load":              3,
+            "if_chat_exists":                   4,
+            "get_last_messages":                5,
+            "init_general_chat":                6,
+            "check_if_user_general_granted":    7,
+            "add_general_message":              8,
+            "get_last_general_messages":        9       
+        },
+
+        "message_fetch_indexes":
+        {
+            "chat_data": 
+            {
+                "id":           0,
+                "date":         1,
+                "sender":       2,
+                "content":      3,
+                "reaction":     4,
+                "visible_flag": 5,
+                "seen_flag":    6
+            },
+            
+            "general_chat_data":
+            {
+                "id":           0,
+                "date":         1,
+                "sender":       2,
+                "content":      3,
+                "visible_flag": 4
+            }
         },
 
         "users":
@@ -34,14 +62,27 @@
         {
             "query_family": "login",
 
-            "login_request": 0
+            "login_request":    0,
+            "logout_request":   1
         },
 
         "menu":
         {
             "query_family": "menu",
 
-            "load_contacts": 0
+            "load_contacts":        0,
+            "change_status":        1,
+            "get_other_statuses":   2
+        },
+
+        "profile":
+        {
+            "query_family": "profile",
+            
+            "change_password":          0,
+            "change_description":       1,
+            "change_personal_color":    2,
+            "load_init_profile_data":   3
         }
     },
 
@@ -49,42 +90,81 @@
     {
         "login_form":
         {
-            "path": "uis/login_form.ui",
-            "widget_width": 426,
-            "widget_height": 761
+            "path": "/Users/mikolajbrozek/projekt-python/chat/src/chat/client/uis/login_form.ui",
+            "widget_width": 400,
+            "widget_height": 650,
+
+            "issue_messages":
+            {
+                "missing_data_issue":   "input both login and password",
+                "not_found_issue":      "data is incorrect"
+            }
         },
 
         "chat":
         {
-            "path": "uis/chat.ui",
-            "widget_width": 611,
-            "widget_height": 761
+            "path": "/Users/mikolajbrozek/projekt-python/chat/src/chat/client/uis/chat.ui",
+            "widget_width": 400,
+            "widget_height": 650
         },
 
         "add_new_user_form":
         {
-            "path": "uis/add_new_user_form.ui",
-            "widget_width": 675,
-            "widget_height": 761
+            "path": "/Users/mikolajbrozek/projekt-python/chat/src/chat/client/uis/add_new_user_form.ui",
+            "widget_width": 400,
+            "widget_height": 650
         },
 
         "menu":
         {
-            "path": "uis/menu.ui",
-            "widget_width": 611,
-            "widget_height": 761
+            "path": "/Users/mikolajbrozek/projekt-python/chat/src/chat/client/uis/menu.ui",
+            "widget_width":         400,
+            "widget_height":        650,
+            "icon_size":            10,
+            "general_chat_name":    "General"
+        },
+
+        "profile":
+        {
+            "path": "/Users/mikolajbrozek/projekt-python/chat/src/chat/client/uis/profile.ui",
+            "widget_width": 400,
+            "widget_height": 650
         }
+    },
+
+    "active_statuses":
+    {
+        "statuses":
+        {
+            "active":   0,
+            "break":    1,
+            "inactive": 2
+        },
+        
+        "icons":
+        {
+            "active":   "green",
+            "break":    "blue",
+            "inactive": "black"
+        }
+    },
+
+    "pending_notifications":
+    {
+        "add_message_pn":           0,
+        "change_status_pn":         1,
+        "add_general_message_pn":   2
     },
 
     "user_data_indexes":
     {
-        "user_id":     0,
-        "role":        1,
-        "name":        2,
-        "surname":     3,
-        "position":    4,
-        "description": 5,
-        "image":       6
+        "user_id":      0,
+        "role":         1,
+        "name":         2,
+        "surname":      3,
+        "position":     4,
+        "description":  5,
+        "image":        6
     }
 }
 

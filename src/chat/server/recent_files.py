@@ -6,6 +6,7 @@
 #   
 #   
 # ----------------------------------------------------
+# todo - take time into account
 
 from config import config_handler as ch
 

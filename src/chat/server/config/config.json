@@ -5,12 +5,18 @@
         {
             "database_name": "main_db",
             "database_full_path": "dbs/main_db.db"
+        },
+
+        "general_chat_db":
+        {
+            "database_name": "general_chat_db",
+            "database_full_path": "dbs/general_chat_db.db"
         }
     },
 
     "dbs_users_chats":
     {
-        "path": "dbs_users_chats"
+        "path": "dbs_users_chats/"
     },
 
     "server_info":
@@ -24,34 +30,51 @@
 
     "server_respond_messages":
     {
-        "respond_to_create_new_chat":           0,
-        "respond_to_create_new_room":           1,
-        "respond_to_add_message":               2,
-        "respond_to_add_new_user":              3,
-        "respond_to_remove_user":               4,
-        "respond_to_check_if_login_is_in_use":  5,
-        "respond_to_login_request":             6,
-        "respond_to_load_contacts":             7,
-        "respond_to_if_chat_exists":            8,
-        "respond_to_chat_init_data_load":       9
+        "respond_to_create_new_chat":               0,
+        "respond_to_create_new_room":               1,
+        "respond_to_add_message":                   2,
+        "respond_to_add_new_user":                  3,
+        "respond_to_remove_user":                   4,
+        "respond_to_check_if_login_is_in_use":      5,
+        "respond_to_login_request":                 6,
+        "respond_to_load_contacts":                 7,
+        "respond_to_if_chat_exists":                8,
+        "respond_to_chat_init_data_load":           9,
+        "respond_to_change_password":               10,
+        "respond_to_change_description":            11,
+        "respond_to_change_personal_color":         12,
+        "respond_to_load_init_profile_data":        13,
+        "respond_to_logout_request":                14,
+        "respond_to_change_status":                 15,
+        "respond_to_get_last_messages":             16,
+        "respond_to_get_other_statuses":            17,
+        "respond_to_init_general_chat":             18,
+        "respond_to_check_if_user_general_granted": 19,
+        "respond_to_add_general_message":           20,
+        "respond_to_get_last_general_messages":     21
     },
 
     "queries_list":
     {
         "messages": 
         {
-            "query_family": "messages",
+            "query_family":                     "messages",
 
-            "create_new_chat":      0,
-            "create_new_room":      1,
-            "add_message":          2,
-            "chat_init_data_load":  3,
-            "if_chat_exists":       4      
+            "create_new_chat":                  0,
+            "create_new_room":                  1,
+            "add_message":                      2,
+            "chat_init_data_load":              3,
+            "if_chat_exists":                   4,
+            "get_last_messages":                5,
+            "init_general_chat":                6,
+            "check_if_user_general_granted":    7,
+            "add_general_message":              8,
+            "get_last_general_messages":        9      
         },
 
         "users":
         {
-            "query_family": "users",
+            "query_family":             "users",
 
             "add_new_user":             0,
             "remove_user":              1,
@@ -60,23 +83,60 @@
 
         "login":
         {
-            "query_family": "login",
+            "query_family":     "login",
 
-            "login_request": 0
+            "login_request":    0,
+            "logout_request":   1
         },
 
         "menu":
         {
-            "query_family": "menu",
+            "query_family":         "menu",
 
-            "load_contacts": 0
+            "load_contacts":        0,
+            "change_status":        1,
+            "get_other_statuses":   2
+        },
+
+        "profile":
+        {
+            "query_family":             "profile",
+            
+            "change_password":          0,
+            "change_description":       1,
+            "change_personal_color":    2,
+            "load_init_profile_data":   3
         }
+    },
+
+    "active_statuses":
+    {
+        "statuses":
+        {
+            "active":   0,
+            "break":    1,
+            "inactive": 2
+        },
+        
+        "icons":
+        {
+            "active":   "green",
+            "break":    "blue",
+            "inactive": "black"
+        }
+    },
+
+    "pending_notifications":
+    {
+        "add_message_pn":           0,
+        "change_status_pn":         1,
+        "add_general_message_pn":   2
     },
 
     "recent_files_data":
     {
-        "max_possible_storage_size": 1000,
-        "init_storage_size": 20,
-        "storage_size_margin": 1
+        "max_possible_storage_size":    1000,
+        "init_storage_size":            20,
+        "storage_size_margin":          1
     }
 }

@@ -14,8 +14,10 @@ _QL_LOGIN = ch.get_queries_list('login')
 _QL_MENU = ch.get_queries_list('menu')
 _QL_MESSAGES = ch.get_queries_list('messages')
 _QL_USERS = ch.get_queries_list('users')
+_QL_PROFILE = ch.get_queries_list('profile')
 #
 _DBS_USERS_CHATS_DATA = ch.get_dbs_users_chat_data()
+_GENERAL_CHAT_DB_DATA = ch.get_db_data('general_chat_db')
 #
 recent_file_storage = Recent_Files()
 
@@ -80,16 +82,102 @@ class Chat_DB(DB_Manager):
         message = query_content['message']
 
         self.cur.execute(
-            f'''
+            '''
                 insert into chat_data(sent_date, sender, message_content,
                     reaction, visiable_flag, seen_flag
                 )
-
                 values(?, ?, ?, ?, ?, ?)
             ''',
             (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), sender, message, 0, 1, 0)
         )
         self.conn.commit()
+
+
+    def get_last_messages(self):
+        last_messages = self.cur.execute(
+            'select * from chat_data order by id desc limit 5;'
+        ).fetchall()
+        return last_messages
+
+
+    def get_last_message(self):
+        last_message = self.cur.execute(
+            'select * from chat_data order by id desc limit 1;'
+        ).fetchone()
+        return last_message
+
+
+
+
+#
+#
+#
+class General_Chat_DB(DB_Manager):
+    def __init__(self):
+        self.name = 'general_chat_db'
+        super().__init__(name = self.name)
+
+
+    def check_if_user_granted(self, user_id: str):
+        result = self.cur.execute(
+            f'''
+                select permission_end_date from general_chat_granted_people
+                where user_id = '{user_id}'
+            '''
+        ).fetchone()
+
+        # if table doesnt contain this user_id
+        if result is None:
+            return False
+
+        # get year month and day from the result 
+        whole_end_date = result[0]
+        year = int(whole_end_date[:whole_end_date.find('-')])
+        month_day_slice = whole_end_date[whole_end_date.find('-') + 1:]
+        month = int(month_day_slice[:2])
+        day = int(month_day_slice[3:])
+        end_day = datetime(year, month, day)
+        # check if user is still gratned till current day
+        if end_day > datetime.now():
+            return True 
+        return False
+
+
+    def get_init_data(self):
+        data = {
+            "chat_name": "General"
+        }
+        return data
+
+
+    def add_message(self, query_content: dict):
+        sender = query_content['sender']
+        message = query_content['message']
+        self.cur.execute(
+            '''
+                insert into general_chat_data(send_date, sender,
+                    message_content, visiable_flag
+                )
+                values(?, ?, ?, ?)
+            ''',
+            (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), sender, message, 1)
+        )
+        self.conn.commit()
+
+
+    def get_last_messages(self):
+        last_messages = self.cur.execute(
+            'select * from general_chat_data order by id desc limit 5;'
+        ).fetchall()
+        return last_messages
+
+
+    def get_last_message(self):
+        last_message = self.cur.execute(
+            'select * from general_chat_data order by id desc limit 1;'
+        ).fetchone()
+        return last_message
+    
 
 
 
@@ -139,6 +227,7 @@ class Main_DBM(DB_Manager):
         ).fetchall()
         return suid_data
 
+
     # ----------------------------------------------------
     # SERVER RESPONSE - USERS
     # query implemenation for responses related to users
@@ -172,7 +261,6 @@ class Main_DBM(DB_Manager):
     # query implemenation for responses related to login form
     # ----------------------------------------------------
 
-
     # returns user_id of account if data is correct
     def handle_login_request(self, login: str, password: str):
         result = self.cur.execute(
@@ -200,6 +288,35 @@ class Main_DBM(DB_Manager):
         ).fetchall()
         return result
         
+    # ----------------------------------------------------
+    # SERVER RESPONSE - PROFILE
+    # query implemenation for responses related to profile
+    # ----------------------------------------------------
+
+    def load_init_profile_data(self, user_id: str):
+        profiles_result = self.cur.execute(
+            f'''
+                select name, surname, position, description, color from profiles
+                where user_id = '{user_id}'
+            '''
+        ).fetchone()
+        all_users_result = self.cur.execute(
+            f'''
+                select role from all_users where user_id = '{user_id}'
+            '''
+        ).fetchone()
+        return {
+            'name':         profiles_result[0],
+            'surname':      profiles_result[1],
+            'position':     profiles_result[2],
+            'description':  profiles_result[3],
+            'color':        profiles_result[4],
+            'role':         all_users_result[0]
+        }
+
+        
+
+
 
     # returns a positive int if server has to respond
     #
@@ -224,17 +341,23 @@ class Main_DBM(DB_Manager):
         if query_family == 'login':
             if query_id == _QL_LOGIN['login_request']:
                 return _SERVER_RESPOND_MESSAGES['respond_to_login_request']
+            elif query_id == _QL_LOGIN['logout_request']:
+                return _SERVER_RESPOND_MESSAGES['respond_to_logout_request']
         #
-        if query_family == 'menu':
-            if query_id == _QL_MENU ['load_contacts']:
+        elif query_family == 'menu':
+            if query_id == _QL_MENU['load_contacts']:
                 return _SERVER_RESPOND_MESSAGES['respond_to_load_contacts']
+            elif query_id == _QL_MENU['change_status']:
+                return _SERVER_RESPOND_MESSAGES['respond_to_change_status']
+            if query_id == _QL_MENU['get_other_statuses']:
+                return _SERVER_RESPOND_MESSAGES['respond_to_get_other_statuses']
         #
-        if query_family == 'messages':
+        elif query_family == 'messages':
             if query_id == _QL_MESSAGES['chat_init_data_load']:
                 return _SERVER_RESPOND_MESSAGES['respond_to_chat_init_data_load']
-            if query_id == _QL_MESSAGES['if_chat_exists']:
+            elif query_id == _QL_MESSAGES['if_chat_exists']:
                 return _SERVER_RESPOND_MESSAGES['respond_to_if_chat_exists']
-            if query_id == _QL_MESSAGES['create_new_chat']:
+            elif query_id == _QL_MESSAGES['create_new_chat']:
                 self._create_new_chat(query_content)
                 return _SERVER_RESPOND_MESSAGES['respond_to_create_new_chat']
             elif query_id == _QL_MESSAGES['create_new_room']: 
@@ -243,17 +366,40 @@ class Main_DBM(DB_Manager):
             elif query_id == _QL_MESSAGES['add_message']: 
                 self._add_message(query_content)
                 return _SERVER_RESPOND_MESSAGES['respond_to_add_message']
+            elif query_id == _QL_MESSAGES['get_last_messages']:
+                return _SERVER_RESPOND_MESSAGES['respond_to_get_last_messages']
+            elif query_id == _QL_MESSAGES['init_general_chat']:
+                return _SERVER_RESPOND_MESSAGES['respond_to_init_general_chat']
+            elif query_id == _QL_MESSAGES['check_if_user_general_granted']:
+                return _SERVER_RESPOND_MESSAGES['respond_to_check_if_user_general_granted']
+            elif query_id == _QL_MESSAGES['add_general_message']:
+                return _SERVER_RESPOND_MESSAGES['respond_to_add_general_message']
+            elif query_id == _QL_MESSAGES['get_last_general_messages']:
+                return _SERVER_RESPOND_MESSAGES['respond_to_get_last_general_messages']
+            
         #
         elif query_family == 'users':
             if query_id == _QL_USERS['add_new_user']:
                 self._add_new_user(query_content)
                 return _SERVER_RESPOND_MESSAGES['respond_to_add_new_user']
-            if query_id == _QL_USERS['remove_user']:
+            elif query_id == _QL_USERS['remove_user']:
                 self._remove_user(query_content)
                 return _SERVER_RESPOND_MESSAGES['respond_to_remove_user']
-            if query_id == _QL_USERS['check_if_login_is_in_use']:
+            elif query_id == _QL_USERS['check_if_login_is_in_use']:
                 return _SERVER_RESPOND_MESSAGES['respond_to_check_if_login_is_in_use']
-
+        #
+        elif query_family == 'profile':
+            if query_id == _QL_PROFILE['change_password']:
+                self._change_password(query_content)
+                return _SERVER_RESPOND_MESSAGES['respond_to_change_password']
+            elif query_id == _QL_PROFILE['change_description']:
+                self._change_description(query_content)
+                return _SERVER_RESPOND_MESSAGES['respond_to_change_description']
+            elif query_id == _QL_PROFILE['change_personal_color']:
+                self._change_personal_color(query_content)
+                return _SERVER_RESPOND_MESSAGES['respond_to_change_personal_color']
+            elif query_id == _QL_PROFILE['load_init_profile_data']:
+                return _SERVER_RESPOND_MESSAGES['respond_to_load_init_profile_data']
 
     # ----------------------------------------------------
     # implemenation for queries related to chat
@@ -264,7 +410,7 @@ class Main_DBM(DB_Manager):
         suid = query_content['second_user_id']
         db_directory = _DBS_USERS_CHATS_DATA['path']
         new_chat_id = util.get_chat_id(fuid, suid)
-        new_db_chat_path = db_directory + '/' + new_chat_id + '.db'
+        new_db_chat_path = db_directory + new_chat_id + '.db'
 
         self.cur.execute('''
                 insert into chats_list(chat_id, first_user_id, second_user_id, path)
@@ -287,7 +433,6 @@ class Main_DBM(DB_Manager):
     def _add_message(self, query_content: dict) -> bool:
         #sender = query_content['sender']
         chat_id = query_content['chat_id']
-        print(f'alias {chat_id}')
         #message = query_content['message']
         # check if db with chat messages is in recent files
         # if not - getting the location of chats file by looking it up in main_db
@@ -347,19 +492,70 @@ class Main_DBM(DB_Manager):
             (user_id, name, surname, position, description, image)
         )   
         self.conn.commit()
+        # check if new user is granted to be a moderator
+        # and if so add permission for user to type on general chat
+        if role != 'mod':
+            return
+
+        gcdb = DB_Manager(path=_GENERAL_CHAT_DB_DATA['database_full_path'])
+        gcdb.cur.execute(f'''
+                insert into general_chat_granted_people(user_id, permission_end_date)
+                values('{user_id}', '100000-01-01')
+            '''
+        )
+        gcdb.conn.commit()
 
 
     def _remove_user(self, user_id) -> None:
-        self.cur.execute(f'delete from all_users where user_id = { user_id }')
-        self.cur.execute(f'delete from users where user_id = { user_id }')
-        self.cur.execute(f'delete from profiles where user_id = { user_id }') 
+        self.cur.execute(f"delete from all_users where user_id = '{user_id}'")
+        self.cur.execute(f"delete from users where user_id = '{user_id}'")
+        self.cur.execute(f"delete from profiles where user_id = '{user_id}'") 
         self.conn.commit()
 
 
+    # ----------------------------------------------------
+    # implemenation for queries related to profile
+    # ----------------------------------------------------
 
+    def _change_password(self, query_content: dict) -> None:
+        user = query_content['user_id']
+        password = query_content['new_value']
+        self.cur.execute(f'''
+                update users set password = '{password}'
+                where user_id = '{user}'
+            '''
+        )
+        self.conn.commit()
+
+    
+    def _change_description(self, query_content: dict) -> None:
+        user = query_content['user_id']
+        description = query_content['new_value']
+        self.cur.execute(f'''
+                update profiles set description = '{description}'
+                where user_id = '{user}'
+            '''
+        )
+        self.conn.commit()
+
+
+    def _change_personal_color(self, query_content: dict) -> None:
+        user = query_content['user_id']
+        color = query_content['new_value']
+        self.cur.execute(f'''
+                update profiles set color = '{color}'
+                where user_id = '{user}'
+            '''
+        )
+        self.conn.commit()
+
+
+    
 
 def main():
-    Main_DBM()._add_message({})
+    exit()
+
+
 
 
 if __name__ == '__main__':

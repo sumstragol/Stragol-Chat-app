@@ -1,33 +1,150 @@
 # developing only
 
-from json import load
+import threading
 from overrides import overrides
 import functools
 import sys
 from PyQt5.uic import loadUi
 import PyQt5
+from PyQt5.QtGui import QPixmap
 import PyQt5.QtWidgets
 from PyQt5.QtWidgets import QDialog, QApplication, QWidget, QMainWindow, QListWidget, QListWidgetItem, QMessageBox, \
     QDialogButtonBox
 from config import config_handler
 import client
+from plyer import notification
+import plyer.platforms.macosx.notification
+#import plyer.platforms.win.notification
+#import plyer.platforms.linux.notification
+#notification.notify(title="tytul", message="tresc")
+
+
+
 
 # user_id of currently logged user
 # will change value on sucessful login 
-myself = None
+myself = ''
 # user_id of user that client want to chat
-selected_contact_user_id = None
+selected_contact_user_id = ''
 # uis data
 chat_data = config_handler.get_ui_data('chat')
 add_new_user_form_data = config_handler.get_ui_data('add_new_user_form')
 login_form_data = config_handler.get_ui_data('login_form')
 menu_data = config_handler.get_ui_data('menu')
+profile_data = config_handler.get_ui_data('profile')
 # indexes of hidden data in contacts list of each contact
 user_data_indexes = config_handler.get_user_data_indexes()
+#
+_ASL = config_handler.get_active_statuses_list('statuses')
+_ASI = config_handler.get_active_statuses_list('icons')
+# when handling an pn message data is packed into list 
+# aliases are used in order to increase readability
+_MFI_CD = config_handler.get_queries_list('message_fetch_indexes')['chat_data']
+_MFI_GCD = config_handler.get_queries_list('message_fetch_indexes')['general_chat_data']
+_PNSL = config_handler.get_pending_notifications_list()
+
+# for all the while loops 
+# swtiches to false on app quit
+client._ACTIVE
 
 
-# preparing socket
+
+
+
+# ----------------------------------------------------
+# PN HANDLING ON THE CLIENT SIDE
+# Producer thread - _listen_to_any_responses (client module)
+# acquires the lock on the pn response and then notifies 
+# consumer thread after appending pn to the storage.
+# Consumer thread - _listen_to_any_pns (this module)
+# waits and after being notified calls 'handle_pn'
+# ----------------------------------------------------
+
+def notify_user(ntitle, nmessage):
+    notification.notify(title=ntitle, message=nmessage)
+
+
+def handle_pns():
+    for pn in client.pns_storage:
+        global pages_manager
+        if pn.data_id == _PNSL['add_message_pn']:
+            user_id = pn.data[_MFI_CD['sender']]
+            # notification
+            user_contact_item = pages_manager.get_widget("menu").get_contact_item(user_id)
+            name = user_contact_item.data(PyQt5.QtCore.Qt.UserRole + user_data_indexes['name'])
+            surname = user_contact_item.data(PyQt5.QtCore.Qt.UserRole + user_data_indexes['surname'])
+            notify_user(f"{name} {surname}", pn.data[_MFI_CD['content']])
+            # append to chat page if its opened
+            global chat_pages
+            widget = chat_pages.get_chat_page(user_id)
+            if widget:
+                widget.append_single_message(message_content=pn.data)
+        elif pn.data_id == _PNSL['change_status_pn']:
+            user_id = pn.data['user_id']
+            status = pn.data['status']
+            # send notify message
+            # if status of some user changed to inactive - do nothing
+            notify_message = ''
+            if status == _ASL['active']:
+                notify_message = "is now active"
+            elif status == _ASL['break']:
+                notify_message = "is now taking break"
+            if len(notify_message):
+                user_contact_item = pages_manager.get_widget("menu").get_contact_item(user_id)
+                name = user_contact_item.data(PyQt5.QtCore.Qt.UserRole + user_data_indexes['name'])
+                surname = user_contact_item.data(PyQt5.QtCore.Qt.UserRole + user_data_indexes['surname'])
+                notify_user(f"{name} {surname}", notify_message)    
+            # update status in menu page
+            pages_manager.get_widget("menu").set_other_status(user_id, status)
+        elif pn.data_id == _PNSL['add_general_message_pn']:
+            user_id = pn.data[_MFI_CD['sender']]
+            # notify user
+            user_contact_item = pages_manager.get_widget("menu").get_contact_item(user_id)
+            name = user_contact_item.data(PyQt5.QtCore.Qt.UserRole + user_data_indexes['name'])
+            surname = user_contact_item.data(PyQt5.QtCore.Qt.UserRole + user_data_indexes['surname'])
+            notify_user(f"{name} {surname} to General Chat", pn.data[_MFI_GCD['content']])
+            # append to general chat page if its opened
+            widget = pages_manager.get_widget("general")
+            if widget is not None:
+                widget.append_single_message(message_content=pn.data)
+
+    
+    client.pns_storage.clear()
+
+
+def _listen_to_any_pns(cv):
+    while client._ACTIVE:
+        cv.acquire()
+        with cv:
+            cv.wait()
+            handle_pns()
+    condition_var.release()
+    return
+
+
+
+
+
+# preparing socket            
+# setting up the threads for listening to the repsonses
 client.client
+condition_var = threading.Condition()
+client.start(condition_var)
+pns_thread = threading.Thread(target=_listen_to_any_pns, args=[condition_var])
+pns_thread.start()
+
+
+
+# called on app quit
+def stop():
+    global condition_var, pns_thread
+    condition_var.acquire()
+    client._ACTIVE = False
+    condition_var.notify_all()
+    condition_var.release()
+    
+
+
 
 
 
@@ -49,7 +166,7 @@ class Pages():
         
 
     def add_widget(self, widget_data):
-        alias, widget, config = widget_data
+        alias, widget, config = widget_data['alias'], widget_data['widget'], widget_data['config']
         self.widgets_stack.addWidget(widget)
         self.widgets_stack_aliases.append(alias)
         self.widgets_stack_configs.append(config)
@@ -72,6 +189,12 @@ class Pages():
         self.widgets_stack.currentWidget().on_switch()
 
 
+    def get_widget(self, alias):
+        for index, widget_alias in enumerate(self.widgets_stack_aliases):
+            if widget_alias == alias:
+                return self.widgets_stack.widget(index)
+        return None
+
     def show(self):
         self.widgets_stack.show()
 
@@ -93,6 +216,8 @@ class Page():
 
 
 app = QApplication(sys.argv)
+app.aboutToQuit.connect(client.stop)
+app.aboutToQuit.connect(stop)
 pages_manager = Pages()
 
 
@@ -115,7 +240,7 @@ class Add_New_User_Form(QWidget, Page):
 
         # button for switching back to recent place
         # in final version - to settings 
-        self.button_back.clicked.connect(functools.partial(pages_manager.switch_to_widget, 'menu'))
+        self.button_back.clicked.connect(functools.partial(pages_manager.switch_to_widget, 'profile'))
         self.button_back.clicked.connect(self.reset_form)
         self.button_add_user.clicked.connect(self.validate_form)
         # passwords input 
@@ -266,14 +391,12 @@ class Login_Form(QWidget, Page):
         self.le_password.setEchoMode(PyQt5.QtWidgets.QLineEdit.Password)
         self.le_password.returnPressed.connect(self.login_request)
 
-        self.issue_data_missing.setVisible(False)
-        self.issue_data_incorrect.setVisible(False)
-
+        self.label_issue.setText(' ')
+        
 
     def login_request(self):
         if len(self.le_login.text()) == 0 or len(self.le_password.text()) == 0:
-            self.issue_data_missing.setVisible(True)
-            self.issue_data_incorrect.setVisible(False)
+            self.label_issue.setText(login_form_data['issue_messages']['missing_data_issue'])
             return
 
         data = {
@@ -284,10 +407,10 @@ class Login_Form(QWidget, Page):
         if login_status:
             global myself 
             myself = login_status
+            client.client_user_id = login_status
             pages_manager.switch_to_widget('menu')
         else:
-            self.issue_data_missing.setVisible(False)
-            self.issue_data_incorrect.setVisible(True)
+            self.label_issue.setText(login_form_data['issue_messages']['not_found_issue'])
             return
 
 
@@ -309,12 +432,16 @@ class Chat(QWidget, Page):
         loadUi(chat_data['path'], self)
         self.button_exit_chat.clicked.connect(self.exit_chat)
         self.button_send_message.clicked.connect(self.send_message)
+        self.le_input_message.returnPressed.connect(self.send_message)
+        self.lw_messages.setWordWrap(True)
         self.init_chat_data_loaded = False
         self.users_have_chated = False
         global myself, selected_contact_user_id
         self.myself_user_id = myself
         self.other_user_id = selected_contact_user_id
+        self.other_user_full_name = ''
         self.chat_id = None
+
 
     @overrides
     def on_switch(self):
@@ -331,6 +458,7 @@ class Chat(QWidget, Page):
         selected_user_data = client.send_chat_init_data_load(self.myself_user_id, self.other_user_id)[0]
         name, surname, image = selected_user_data
         full_name = name + ' ' + surname
+        self.other_user_full_name = full_name
         self.label_chats_name.setText(full_name)
 
         # checking if chat file exists (if users have chated)
@@ -341,14 +469,58 @@ class Chat(QWidget, Page):
             self.button_send_message.clicked.disconnect(self.send_message)
             self.button_send_message.clicked.connect(self.send_first_message)
             return
+
         self.chat_id = chat_id
         self.users_have_chated = True
-        #chat_last_messages = client.send_load_messages(self.chat_id)
-        #print(chat_last_messages)
+        last_messages = client.send_get_last_messages(self.chat_id)
+        for message in reversed(last_messages):
+            self.append_single_message(self, message_content=message)
+
+
+    def append_single_message(self, who=None, message_content=None):
+        # check if last message's sender is the same 
+        # if so prefix with the name wont be added
+        if_prefix = True
+        if self.lw_messages.count() > 0:
+            last_message = self.lw_messages.item(self.lw_messages.count() - 1)
+            last_message_user = last_message.data(PyQt5.QtCore.Qt.UserRole + user_data_indexes['user_id'])
+            if who and who == last_message_user \
+            or message_content is not None and message_content[_MFI_CD['sender']] == last_message_user:
+                if_prefix = False
+        
+        prefix = ''
+        if who == self.myself_user_id:
+            message_text = self.le_input_message.text()
+            if if_prefix:
+                prefix = 'me\n'
+            message_item = QListWidgetItem(prefix + message_text)
+            message_item.setData(PyQt5.QtCore.Qt.UserRole + user_data_indexes['user_id'], self.myself_user_id)
+            message_item.setBackground(PyQt5.QtGui.QBrush(PyQt5.QtGui.QColor(213, 221, 222)))
+            self.lw_messages.addItem(message_item)
+        else:
+            message_text = message_content[_MFI_CD['content']]
+            # name preceding message content
+            if if_prefix:
+                # may seem redudant but in case of loading messages on first init 
+                # messages are packed into message_content after getting them from 
+                # seperate query
+                if message_content[_MFI_CD['sender']] == self.myself_user_id:
+                    prefix = 'me\n'
+                else:
+                    prefix = self.other_user_full_name + '\n'
+            message_item = QListWidgetItem(prefix + message_text)
+            message_item.setData(PyQt5.QtCore.Qt.UserRole + user_data_indexes['user_id'], message_content[_MFI_CD['sender']])
+            # if myself change background color
+            if message_content[_MFI_CD['sender']] == self.myself_user_id:
+                message_item.setBackground(PyQt5.QtGui.QBrush(PyQt5.QtGui.QColor(213, 221, 222)))
+            self.lw_messages.addItem(message_item)
+        self.lw_messages.scrollToBottom()
 
 
     def append_my_message(self):
-        my_last_sent_message = self.le_input_message.text()
+        self.append_single_message(myself)
+
+
 
     # method for first message, creating chat file etc
     # after getting things ready, reassigning onclick method
@@ -371,9 +543,12 @@ class Chat(QWidget, Page):
 
 
     def send_message(self):
+        if len(self.le_input_message.text()) == 0:
+            return
+
         self.append_my_message()
         message = self.le_input_message.text()
-        client.send_add_message(self.myself_user_id, self.chat_id, message)
+        client.send_add_message(self.myself_user_id, self.other_user_id, self.chat_id, message)
         
         self.le_input_message.clear()
 
@@ -394,11 +569,16 @@ class Chat(QWidget, Page):
 # some additional functionality that may help in 
 # case of CHAT pages(widgets)
 #
+# notes -
+# self.opened_chat_pages contains users_id not chat_id,
+# chat_id is obtained after creating chat page.
+# in case of looking after chat page - search using
+# user_id (selected_user_id)
 # ----------------------------------------------------
 
 class Chat_Pages_Manger():
     def __init__(self) -> None:
-        self.opened_chat_pages = {}
+        self.opened_chat_pages = []
 
 
     def check_if_exists(self, user_id):
@@ -408,7 +588,15 @@ class Chat_Pages_Manger():
             return False
 
 
+    def get_chat_page(self, user_id):
+        if self.check_if_exists(user_id):
+            return pages_manager.get_widget(user_id)
+        else:
+            return None
+
+
     def create_new_page(self, selected_user_id):
+        self.opened_chat_pages.append(selected_user_id)
         pages_manager.add_widget(
             [
                 selected_user_id,
@@ -427,6 +615,123 @@ class Chat_Pages_Manger():
 chat_pages = Chat_Pages_Manger()
 
 
+
+# ----------------------------------------------------
+#
+#
+#
+#
+#
+#
+#
+# ----------------------------------------------------
+
+class General_Chat(Chat, QWidget):
+    def __init__(self) -> None:
+        super().__init__()
+        self.granted_to_type = False
+    
+
+    @overrides
+    def on_switch(self):
+        self.init_chat_data_load()
+
+
+    @overrides
+    def init_chat_data_load(self):
+        if self.init_chat_data_loaded:
+            return
+
+        self.init_chat_data_loaded = True
+        # chat title (label)
+        general_chat_data = client.send_init_general_chat()
+        self.label_chats_name.setText(general_chat_data['chat_name'])
+        # check if user is granted to type in general chat
+        granted = client.send_check_if_user_general_granted(self.myself_user_id) 
+        self.granted_to_type = granted
+        # grant user to send message
+        self.le_input_message.setEnabled(granted)
+        self.button_send_message.setEnabled(granted)
+
+        # append last messages
+        last_messages = client.send_get_last_general_messages()
+        for message in reversed(last_messages):
+            self.append_single_message(message_content=message)
+        
+
+    def append_single_message(self, who=None, message_content=None):
+        # check if last message's sender is the same 
+        # if so prefix with the name wont be added
+        if_prefix = True
+        if self.lw_messages.count() > 0:
+            last_message = self.lw_messages.item(self.lw_messages.count() - 1)
+            last_message_user = last_message.data(PyQt5.QtCore.Qt.UserRole + user_data_indexes['user_id'])
+            if who and who == last_message_user \
+            or message_content is not None and message_content[_MFI_CD['sender']] == last_message_user:
+                if_prefix = False
+
+        # message sent by user himself
+        if who == self.myself_user_id:
+            if if_prefix:
+                prefix = 'me'
+                prefix_item = QListWidgetItem(prefix)
+                prefix_item.setBackground(PyQt5.QtGui.QBrush(PyQt5.QtGui.QColor(213, 221, 222)))
+                self.lw_messages.addItem(prefix_item)
+            message_text = self.le_input_message.text()
+            message_item = QListWidgetItem(message_text)
+            message_item.setData(PyQt5.QtCore.Qt.UserRole + user_data_indexes['user_id'], self.myself_user_id)
+            message_item.setBackground(PyQt5.QtGui.QBrush(PyQt5.QtGui.QColor(213, 221, 222)))
+            self.lw_messages.addItem(message_item)
+            return
+
+        # message received on the first init, on in pn
+        # set up prefix
+        if if_prefix:
+            # may seem redudant but in case of loading messages on first init 
+            # messages are packed into message_content after getting them from 
+            # seperate query
+            if message_content[_MFI_GCD['sender']] == self.myself_user_id:
+                prefix = 'me'
+            else:
+                # based on user_if find contact in contact list and get data from contact item
+                user_contact_item = pages_manager.get_widget("menu").get_contact_item(message_content[_MFI_GCD['sender']])
+                name = user_contact_item.data(PyQt5.QtCore.Qt.UserRole + user_data_indexes['name'])
+                surname = user_contact_item.data(PyQt5.QtCore.Qt.UserRole + user_data_indexes['surname'])
+                prefix = f'{name} {surname}'
+            prefix_item = QListWidgetItem(prefix)
+            if message_content[_MFI_GCD['sender']] == self.myself_user_id:
+                prefix_item.setBackground(PyQt5.QtGui.QBrush(PyQt5.QtGui.QColor(213, 221, 222)))
+            self.lw_messages.addItem(prefix_item)
+
+        message_text = message_content[_MFI_GCD['content']]
+        message_item = QListWidgetItem(message_text)
+        message_item.setData(PyQt5.QtCore.Qt.UserRole + user_data_indexes['user_id'], message_content[_MFI_GCD['sender']])
+        if message_content[_MFI_GCD['sender']] == self.myself_user_id:
+            message_item.setBackground(PyQt5.QtGui.QBrush(PyQt5.QtGui.QColor(213, 221, 222)))
+        self.lw_messages.addItem(message_item)
+
+
+    def append_my_message(self):
+        self.append_single_message(who=self.myself_user_id)
+
+
+    def send_message(self):
+        if len(self.le_input_message.text()) == 0:
+            return
+
+        self.append_my_message()
+        message = self.le_input_message.text()
+        client.send_add_general_message(self.myself_user_id, message)
+        self.le_input_message.clear()
+
+
+    def exit_chat(self):
+        global selected_contact_user_id
+        selected_contact_user_id = None
+        pages_manager.switch_to_widget("menu")
+
+
+
 # ----------------------------------------------------
 #
 #
@@ -441,37 +746,239 @@ class Menu(QWidget, Page):
     def __init__(self) -> None:
         super(Menu, self).__init__()
         loadUi(menu_data['path'], self)
-        self.button_status_inactive.clicked.connect(functools.partial(pages_manager.switch_to_widget, 'add_new_user_form'))
         self.lw_contacts.itemClicked.connect(self.open_chat)
+        self.button_profile.clicked.connect(functools.partial(pages_manager.switch_to_widget, 'profile'))
+        self.le_search_bar.textChanged.connect(self.filtr_contacts)
+        self.button_status_active.clicked.connect(functools.partial(self.change_my_status, _ASL['active']))
+        self.button_status_break.clicked.connect(functools.partial(self.change_my_status, _ASL['break']))
+        self.button_status_inactive.clicked.connect(functools.partial(self.change_my_status, _ASL['inactive']))
 
 
     @overrides
     def on_switch(self):
         self.load_contacts()
-        
+
+
+    def filtr_contacts(self, text):
+        for row_num in range(self.lw_contacts.count()):
+            user_name = self.lw_contacts.item(row_num).text()
+            if user_name.lower().find(text.lower()) > -1:
+                self.lw_contacts.item(row_num).setHidden(False)
+            else:
+                self.lw_contacts.item(row_num).setHidden(True)
+
+
+    # onclick function for the client himself
+    def change_my_status(self, status):
+        client.send_change_status(myself, status)
+
+
+    # creates appropiate icon for the users active status
+    def get_status_icon(self, status):
+        pixmap = QPixmap(menu_data['icon_size'], menu_data['icon_size'])
+        status_icon_color = ''
+        if status == _ASL['active']:
+            status_icon_color = _ASI['active']
+        elif status == _ASL['break']:
+            status_icon_color = _ASI['break']
+        elif status == _ASL['inactive']:
+            status_icon_color = _ASI['inactive']
+        pixmap.fill(PyQt5.QtGui.QColor(status_icon_color))
+        return PyQt5.QtGui.QIcon(pixmap)
+
+
+    # updating other users statuses (including icons)
+    def set_other_status(self, who, status):
+        # find item (user, based on his user_id)
+        for row_num in range(self.lw_contacts.count()):
+            some_user_id = self.lw_contacts.item(row_num).data(PyQt5.QtCore.Qt.UserRole + user_data_indexes['user_id'])
+            if who == some_user_id:
+                status_icon = self.get_status_icon(status)
+                self.lw_contacts.item(row_num).setIcon(status_icon)
+                return
+
 
     def load_contacts(self):
         if self.lw_contacts.count() != 0:
-            return 
+            return
 
+        # general chat
+        icon = self.get_status_icon(_ASL['active'])
+        general_chat_item = QListWidgetItem(menu_data['general_chat_name'])
+        general_chat_item.setIcon(icon)
+        general_chat_item.setData(PyQt5.QtCore.Qt.UserRole + user_data_indexes['user_id'], "General")
+        self.lw_contacts.addItem(general_chat_item)
 
+        # get regular contacts - other users 
         contacts = client.send_load_contacts(myself)
+        statuses = client.send_get_other_statuses(myself)
         for single_user_data  in contacts:
+            # fetching data and creating an item
             user_id, name, surname = single_user_data
             user_name = name + ' ' + surname
             list_item = QListWidgetItem(user_name)
+            # fetching status and seting up the icon for the item
+            pixmap = QPixmap(menu_data['icon_size'], menu_data['icon_size'])
+            status_color = ''
+            # users that are active/break
+            if user_id in statuses:
+                status = statuses[user_id]    
+                if status == _ASL['active']:
+                    status_color = _ASI['active']
+                elif status == _ASL['break']:
+                    status_color = _ASI['break']
+            else:
+                status_color = _ASI['inactive']
+            pixmap.fill(PyQt5.QtGui.QColor(status_color))
+            status_icon = PyQt5.QtGui.QIcon(pixmap)
+            list_item.setIcon(status_icon)
+            #data
             list_item.setData(PyQt5.QtCore.Qt.UserRole + user_data_indexes['user_id'], user_id)
+            list_item.setData(PyQt5.QtCore.Qt.UserRole + user_data_indexes['name'], name)
+            list_item.setData(PyQt5.QtCore.Qt.UserRole + user_data_indexes['surname'], surname)
             self.lw_contacts.addItem(list_item)
 
 
+    # for other classes or places where data hidden in contact is needed
+    # (data is accessed through that item)    
+    def get_contact_item(self, user_id):
+        for row_num in range(self.lw_contacts.count()):
+            some_user_id = self.lw_contacts.item(row_num).data(PyQt5.QtCore.Qt.UserRole + user_data_indexes['user_id'])
+            if user_id == some_user_id:
+                return self.lw_contacts.item(row_num)
+
+
+    # onclick for contact on the users list
     def open_chat(self):
+        selected_chat = self.lw_contacts.currentItem().data(PyQt5.QtCore.Qt.UserRole + user_data_indexes['user_id'])
+        # check if user wants to open general chat
+        if selected_chat == "General":
+            if pages_manager.get_widget("general") == None:
+                pages_manager.add_widget(
+                    {
+                        'alias':    'general',
+                        'widget':   General_Chat(),
+                        'config':   chat_data
+                    }
+                )
+            pages_manager.switch_to_widget("general")
+            return
+
+
         global myself, selected_contact_user_id
-        selected_contact_user_id = self.lw_contacts.currentItem().data(PyQt5.QtCore.Qt.UserRole + user_data_indexes['user_id'])
+        # chat pages are named after user_id
+        # of a user that client is chatting with
+        selected_contact_user_id = selected_chat
         if not chat_pages.check_if_exists(selected_contact_user_id):
             chat_pages.create_new_page(selected_contact_user_id)
 
         chat_pages.switch_to_page(selected_contact_user_id)
+
+
+
+
+# ----------------------------------------------------
+#
+#
+#
+#
+#
+#
+#
+# ----------------------------------------------------
+
+class Profile(QWidget, Page):
+    def __init__(self) -> None:
+        super(Profile, self).__init__()
+        loadUi(profile_data['path'], self)
+        self.button_exit_profile.clicked.connect(functools.partial(pages_manager.switch_to_widget, 'menu'))
+        self.button_add_new_user_menu.clicked.connect(functools.partial(pages_manager.switch_to_widget, 'add_new_user_form'))
+        self.button_change_password.clicked.connect(self.change_password)
+        self.button_change_personal_color.clicked.connect(self.change_personal_color)
+        self.button_change_description.clicked.connect(self.change_description)
+        self.le_password.setEchoMode(PyQt5.QtWidgets.QLineEdit.Password)
+        self.le_retype_password.setEchoMode(PyQt5.QtWidgets.QLineEdit.Password)
+
+
+    @overrides
+    def on_switch(self):
+        self.init_user_data()
+
+
+    def init_user_data(self):
+        # admin prefix starts with 0000
+        if myself[:4] != '0000':
+            self.button_add_new_user_menu.setVisible(False)
+
+        data = client.load_init_profile_data(myself)
+        if not data:
+            print('[CLIENT] Failed to load profile data.')
+
+        self.te_description.setText(data['description'])
+        temp_index = self.combo_personal_color.findText(data['color'])
+        self.combo_personal_color.setCurrentIndex(temp_index)
+
+
+    def change_password(self):
+        if len(self.le_password.text()) <= 7:
+            self.label_password_change_issue.setText('your new passwords lenght is to small')
+            self.label_password_change_issue.setVisible(True)
+            return
         
+        self.label_password_change_issue.setText('')
+
+        if self.le_password.text() != self.le_retype_password.text():
+            self.label_password_change_issue.setText('password dont match')
+            self.label_password_change_issue.setVisible(True)
+            return
+
+        self.send_any_change_request('password')
+        self.le_password.clear()
+        self.le_retype_password.clear()
+
+
+    def change_personal_color(self):
+        self.send_any_change_request('personal_color')
+    
+
+    def change_description(self):
+        self.send_any_change_request('description')
+        
+    
+    def send_any_change_request(self, which):
+        if which == 'password':
+            result = client.send_profile_change('password', myself, self.le_password.text())
+        elif which == 'description':
+            result = client.send_profile_change('description', myself, self.te_description.toPlainText())
+        elif which == 'personal_color':
+            result = client.send_profile_change('personal_color', myself, str(self.combo_personal_color.currentText()))
+
+        if result:
+            qmb_inform_user = QMessageBox()
+            qmb_inform_user.setWindowTitle("Profile")
+            qmb_inform_user.setText("Profile updated.")
+            qmb_inform_user.setStandardButtons(QMessageBox.Ok)
+            qmb_inform_user.exec_()
+        
+
+
+
+# ----------------------------------------------------
+#
+#
+#
+#
+#
+#
+#
+# ----------------------------------------------------
+
+
+
+
+
+
+
 
 
 
@@ -486,6 +993,11 @@ pages_manager.add_widgets(
         "widget": Menu(),
         "config": menu_data
     },
+    {
+        "alias": "profile",
+        "widget": Profile(),
+        "config": profile_data
+    },
     { 
         "alias": "add_new_user_form",
         "widget": Add_New_User_Form(),
@@ -497,4 +1009,7 @@ pages_manager.show()
 try:
     sys.exit(app.exec_())
 except:
-    pass
+    print("App exits")
+
+
+
