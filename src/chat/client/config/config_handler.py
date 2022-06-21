@@ -93,6 +93,15 @@ def get_user_data_indexes():
     key = 'user_data_indexes'
     return get_config_data()[key]
 
+
+#
+#
+#
+def get_contact_types():
+    key = 'contact_types'
+    return get_config_data()[key]
+
+
 #
 #
 #

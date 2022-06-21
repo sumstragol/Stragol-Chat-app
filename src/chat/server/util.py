@@ -35,11 +35,13 @@ def get_chat_id(first_id: str, second_id: str) -> str:
 
 
 #
-def create_db_users_chat_file(path_with_file_included):
+def create_file(path_with_file_included):
     os.system(f'touch {path_with_file_included}')
 
 
-
+# will be changed ?
+def make_conference_name(name):
+    return name
 
 
 

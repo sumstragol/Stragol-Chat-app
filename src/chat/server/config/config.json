@@ -19,6 +19,11 @@
         "path": "dbs_users_chats/"
     },
 
+    "dbs_conference_chats":
+    {
+        "path": "dbs_conferences_chats/"
+    },
+
     "server_info":
     {
         "port": 33230,
@@ -51,7 +56,12 @@
         "respond_to_init_general_chat":             18,
         "respond_to_check_if_user_general_granted": 19,
         "respond_to_add_general_message":           20,
-        "respond_to_get_last_general_messages":     21
+        "respond_to_get_last_general_messages":     21,
+        "respond_to_create_conference":             22,
+        "respond_to_load_all_conferences":          23,
+        "respond_to_get_last_conference_messages":  24,
+        "respond_to_add_conference_message":        25,
+        "respond_to_check_if_user_in_conference":   26
     },
 
     "queries_list":
@@ -70,6 +80,17 @@
             "check_if_user_general_granted":    7,
             "add_general_message":              8,
             "get_last_general_messages":        9      
+        },
+
+        "conferences":
+        {
+            "query_family":                 "conferences",
+
+            "create_conference":            0,
+            "load_all_conferences":         1,
+            "get_last_conference_messages": 2,
+            "add_conference_message":       3,
+            "check_if_user_in_conference":  4
         },
 
         "users":
@@ -128,9 +149,10 @@
 
     "pending_notifications":
     {
-        "add_message_pn":           0,
-        "change_status_pn":         1,
-        "add_general_message_pn":   2
+        "add_message_pn":               0,
+        "change_status_pn":             1,
+        "add_general_message_pn":       2,
+        "add_conference_message_pn":    3
     },
 
     "recent_files_data":

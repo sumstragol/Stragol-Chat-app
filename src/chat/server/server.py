@@ -29,6 +29,7 @@ _SERVER_RESPOND_MESSAGES = config_handler.get_server_respond_messages()
 _PN = config_handler.get_pending_notifications_list()
 _ASL = config_handler.get_active_statuses_list('statuses')
 _DBS_USERS_CHATS_DATA = config_handler.get_dbs_users_chat_data()
+_DBS_CONFERENCES_CHATS_DATA = config_handler.get_dbs_conferences_chats_data()
 
 os.system(f"freeport {_PORT}")
 print(f'[SERVER] starting... ip: {_SERVER_IP}, port: {_PORT}.')
@@ -317,6 +318,55 @@ def respond_to_client(respond_id: int, data: dict, conn, addr):
         response['answer'] = last_messages
         return _encode_any_content(response)
 
+    # ----------------------------------------------------
+    # implemenation for responses related to conferences
+    # ----------------------------------------------------
+
+    elif respond_id == _SERVER_RESPOND_MESSAGES['respond_to_create_conference']:
+        response['answer'] = True
+        return _encode_any_content(response)
+
+    elif respond_id == _SERVER_RESPOND_MESSAGES['respond_to_load_all_conferences']:
+        response['answer'] = dbm.Main_DBM().load_all_conferences()
+        return _encode_any_content(response)
+
+    elif respond_id == _SERVER_RESPOND_MESSAGES['respond_to_get_last_conference_messages']:
+        conference_name = data['conference_name']
+        conference_path = _DBS_CONFERENCES_CHATS_DATA['path'] + conference_name + '.db'
+        last_messages = dbm.Conference_DB(path=conference_path).get_last_messages()
+        response['answer'] = last_messages
+        return _encode_any_content(response)
+    
+    elif respond_id == _SERVER_RESPOND_MESSAGES['respond_to_add_conference_message']:
+        conference_name = data['conference_name']
+        conference_path = _DBS_CONFERENCES_CHATS_DATA['path'] + conference_name + '.db'
+        db = dbm.Conference_DB(path=conference_path)
+        db.add_message(data)
+
+        # pn
+        sender = data['sender']
+        # convert to list in order to append conference name
+        # since data from sqlite3 queries comes tucked in tuples
+        last_message = list(db.get_last_message())
+        last_message.append(conference_name)
+        # send pns to users that are connected and are part
+        # of this conference
+        conference_users = db.get_conference_users()
+        for user in conference_users:
+            user_socc = users_list.find_user(user)
+            if  user_socc is not None and user != sender:
+                _send_push_notification(user_socc, _PN['add_conference_message_pn'], last_message)
+
+        # response
+        response['answer'] = True
+        return _encode_any_content(response)
+
+    elif respond_id == _SERVER_RESPOND_MESSAGES['respond_to_check_if_user_in_conference']:
+        conference_name = data['conference_name']
+        conference_path = _DBS_CONFERENCES_CHATS_DATA['path'] + conference_name + '.db'
+        user_id = data['user_id']
+        response['answer'] = dbm.Conference_DB(path=conference_path).check_if_in_conference(user_id)
+        return _encode_any_content(response)
 
     # ----------------------------------------------------
     # implemenation for responses related to users
@@ -361,23 +411,26 @@ def respond_to_client(respond_id: int, data: dict, conn, addr):
 def connection_handling(conn, addr):    
     joined = True
     while joined:
-        message_length = conn.recv(_HEADER_SIZE).decode(_FORMAT)
+        try:
+            message_length = conn.recv(_HEADER_SIZE).decode(_FORMAT)
 
-        if not message_length:
-            return
+            if not message_length:
+                return
 
-        message_length = int(message_length)
-        query = conn.recv(message_length).decode(_FORMAT)
-        # developing only
-        print(f" SERVER QUERY: {addr} {query}\n")
-        respond_id = main_db.handle_query(json.loads(query))
-        
-        if respond_id > -1:
-            header, content = respond_to_client(respond_id, json.loads(query), conn, addr)
-            conn.send(header)
-            conn.send(content)
+            message_length = int(message_length)
+            query = conn.recv(message_length).decode(_FORMAT)
+            # developing only
+            print(f" SERVER QUERY: {addr} {query}\n")
+            respond_id = main_db.handle_query(json.loads(query))
             
-
+            if respond_id > -1:
+                header, content = respond_to_client(respond_id, json.loads(query), conn, addr)
+                conn.send(header)
+                conn.send(content)
+        except:
+            joined = False
+            print("[SERVER] Server failed to handle the connection, disconnecting..")
+            break        
 
     disconnect_handling(conn, addr)
 

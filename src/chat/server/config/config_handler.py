@@ -96,6 +96,14 @@ def get_dbs_users_chat_data():
 #
 #
 #
+def get_dbs_conferences_chats_data():
+    key = 'dbs_conference_chats'
+    return get_config_data()[key]
+
+
+#
+#
+#
 def get_recent_files_data():
     key = 'recent_files_data'
     return get_config_data()[key]

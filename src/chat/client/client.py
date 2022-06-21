@@ -26,6 +26,7 @@ messages_queries = config_handler.get_queries_list('messages')
 users_queries = config_handler.get_queries_list('users')
 menu_queries = config_handler.get_queries_list('menu')
 profile_queries = config_handler.get_queries_list('profile')
+_CQ = config_handler.get_queries_list('conferences')
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect(_ADDR)
@@ -256,6 +257,68 @@ def send_add_general_message(sender, message_content):
     _send_any_query(content)
 
     return _get_any_response(messages_queries['add_general_message'])
+
+
+# ----------------------------------------------------
+# implementation for conference queries
+# ----------------------------------------------------
+
+def send_create_conference(name, creator, users_ids):
+    content = {
+        'query_family':     _CQ['query_family'],
+        'query_id':         _CQ['create_conference'],
+        'conference_name':  name,
+        'creator':          creator,
+        "users_ids":        users_ids
+    }
+    _send_any_query(content)
+    
+    return _get_any_response(_CQ['create_conference'])
+
+
+def send_load_all_conferences():
+    content = {
+        'query_family': _CQ['query_family'],
+        'query_id':     _CQ['load_all_conferences']
+    }
+    _send_any_query(content)
+    
+    return _get_any_response(_CQ['load_all_conferences'])
+
+
+def send_get_last_conference_messages(conference_name):
+    content = {
+        'query_family':     _CQ['query_family'],
+        'query_id':         _CQ['get_last_conference_messages'],
+        'conference_name':  conference_name
+    }
+    _send_any_query(content)
+
+    return _get_any_response(_CQ['get_last_conference_messages'])
+
+
+def send_add_conference_message(sender, conference_name, message_content):
+    content = {
+        'query_family':     _CQ['query_family'],
+        'query_id':         _CQ['add_conference_message'],
+        'sender':           sender,
+        'conference_name':  conference_name,
+        'message':          message_content
+    }
+    _send_any_query(content)
+    return _get_any_response(_CQ['add_conference_message'])
+
+
+def send_check_if_user_in_conference(conference_name, user_id):
+    content = {
+        'query_family':     _CQ['query_family'],
+        'query_id':         _CQ['check_if_user_in_conference'],
+        'conference_name':  conference_name,
+        'user_id':          user_id,
+    }
+    _send_any_query(content)
+    return _get_any_response(_CQ['check_if_user_in_conference'])
+
 
 # ----------------------------------------------------
 # implementation for sending login request

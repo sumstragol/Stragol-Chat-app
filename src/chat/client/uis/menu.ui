@@ -138,6 +138,20 @@ color: blue
       </spacer>
      </item>
      <item>
+      <widget class="QToolButton" name="button_create_conference">
+       <property name="text">
+        <string>Create conference</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QToolButton" name="button_cancel_conference_create">
+       <property name="text">
+        <string>Cancel</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <spacer name="horizontalSpacer">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>

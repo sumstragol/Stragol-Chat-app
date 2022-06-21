@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>600</width>
-    <height>761</height>
+    <height>760</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -89,7 +89,7 @@
       </spacer>
      </item>
      <item>
-      <widget class="QPushButton" name="button_add_new_user_menu">
+      <widget class="QToolButton" name="button_add_new_user_menu">
        <property name="text">
         <string>Add new user menu</string>
        </property>

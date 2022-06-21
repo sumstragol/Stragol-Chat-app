@@ -5,7 +5,6 @@
 import sqlite3
 from config import config_handler as ch
 import util
-from recent_files import Recent_Files
 from datetime import datetime
 
 _SERVER_RESPOND_MESSAGES = ch.get_server_respond_messages()
@@ -15,11 +14,12 @@ _QL_MENU = ch.get_queries_list('menu')
 _QL_MESSAGES = ch.get_queries_list('messages')
 _QL_USERS = ch.get_queries_list('users')
 _QL_PROFILE = ch.get_queries_list('profile')
+_QL_CONFERENCES = ch.get_queries_list('conferences')
 #
 _DBS_USERS_CHATS_DATA = ch.get_dbs_users_chat_data()
+_DBS_CONFERENCES_CHATS_DATA = ch.get_dbs_conferences_chats_data()
 _GENERAL_CHAT_DB_DATA = ch.get_db_data('general_chat_db')
 #
-recent_file_storage = Recent_Files()
 
 
 # ----------------------------------------------------
@@ -69,7 +69,7 @@ class Chat_DB(DB_Manager):
                     sender varchar(9),
                     message_content varchar,
                     reaction int,
-                    visiable_flag int,
+                    visible_flag int,
                     seen_flag int
                 )
             '''
@@ -84,7 +84,7 @@ class Chat_DB(DB_Manager):
         self.cur.execute(
             '''
                 insert into chat_data(sent_date, sender, message_content,
-                    reaction, visiable_flag, seen_flag
+                    reaction, visible_flag, seen_flag
                 )
                 values(?, ?, ?, ?, ?, ?)
             ''',
@@ -110,7 +110,7 @@ class Chat_DB(DB_Manager):
 
 
 #
-#
+# general chat interface
 #
 class General_Chat_DB(DB_Manager):
     def __init__(self):
@@ -156,7 +156,7 @@ class General_Chat_DB(DB_Manager):
         self.cur.execute(
             '''
                 insert into general_chat_data(send_date, sender,
-                    message_content, visiable_flag
+                    message_content, visible_flag
                 )
                 values(?, ?, ?, ?)
             ''',
@@ -178,6 +178,110 @@ class General_Chat_DB(DB_Manager):
         ).fetchone()
         return last_message
     
+
+
+
+#
+#
+#
+class Conference_DB(DB_Manager):
+    def __init__(self, path: str) -> None:
+        super().__init__(path=path)
+
+
+    def init_tables(self, conference_id, creator, users_ids):
+        # list of users that this conference is visible for
+        self.cur.execute(
+            '''
+                CREATE TABLE users
+                (
+                    id integer primary key autoincrement not null,
+                    user_id varchar(9),
+                    role varchar
+                )
+            '''
+        )
+        self.conn.commit()
+        
+        # now add users to users table
+        for user in users_ids:
+            conference_role = 'regular'
+            if creator == user:
+                conference_role = 'creator'
+            self.cur.execute(
+                '''
+                    insert into users(user_id, role)
+                    values(?, ?)            
+                ''',
+                (user, conference_role)
+            )
+            self.conn.commit()
+
+        # create table for conference content
+        self.cur.execute(
+            '''
+                CREATE TABLE conference_content
+                (
+                    id integer primary key autoincrement not null,
+                    send_date text,
+                    sender varchar(9),
+                    message_content varchar,
+                    visible_flag integer
+                )
+            '''
+        )
+        self.conn.commit()
+            
+
+    def get_conference_users(self):
+        users = self.cur.execute(
+            '''
+                select user_id from users;
+            '''
+        ).fetchall()
+        # each row is packed into tuples (user_id, '')
+        # '' - nothing cause im only selecting one column
+        users = [user[0] for user in users]    
+        return users
+
+
+    def check_if_in_conference(self, user_id):
+        if user_id in self.get_conference_users():
+            return True
+        else:
+            return False
+
+
+
+    def add_message(self, query_content: dict):
+        sender = query_content['sender']
+        message = query_content['message']
+        self.cur.execute(
+            '''
+                insert into conference_content(send_date, sender,
+                    message_content, visible_flag
+                )
+                values(?, ?, ?, ?)
+            ''',
+            (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), sender, message, 1)
+        )
+        self.conn.commit()
+
+
+    def get_last_messages(self):
+        last_messages = self.cur.execute(
+            'select * from conference_content order by id desc limit 5;'
+        ).fetchall()
+        return last_messages
+
+
+    def get_last_message(self):
+        last_message = self.cur.execute(
+            'select * from conference_content order by id desc limit 1;'
+        ).fetchone()
+        return last_message
+    
+
 
 
 
@@ -314,8 +418,20 @@ class Main_DBM(DB_Manager):
             'role':         all_users_result[0]
         }
 
+    # ----------------------------------------------------
+    # SERVER RESPONSE - CONFERENCES
+    # query implemenation for responses related to conferences
+    # ----------------------------------------------------
         
-
+    def load_all_conferences(self):
+        conferences = self.cur.execute(
+            '''
+                select conference_id from conferences_list
+            '''
+        ).fetchall()
+        # (conference, '')
+        conferences = [conference[0] for conference in conferences]
+        return conferences
 
 
     # returns a positive int if server has to respond
@@ -376,7 +492,21 @@ class Main_DBM(DB_Manager):
                 return _SERVER_RESPOND_MESSAGES['respond_to_add_general_message']
             elif query_id == _QL_MESSAGES['get_last_general_messages']:
                 return _SERVER_RESPOND_MESSAGES['respond_to_get_last_general_messages']
-            
+
+        #    
+        elif query_family == 'conferences':
+            if query_id == _QL_CONFERENCES['create_conference']:
+                self._create_new_conference(query_content)
+                return _SERVER_RESPOND_MESSAGES['respond_to_create_conference']
+            if query_id == _QL_CONFERENCES['load_all_conferences']:
+                return _SERVER_RESPOND_MESSAGES['respond_to_load_all_conferences']
+            if query_id == _QL_CONFERENCES['get_last_conference_messages']:
+                return _SERVER_RESPOND_MESSAGES['respond_to_get_last_conference_messages']
+            if query_id == _QL_CONFERENCES['add_conference_message']:
+                return _SERVER_RESPOND_MESSAGES['respond_to_add_conference_message']
+            if query_id == _QL_CONFERENCES['check_if_user_in_conference']:
+                return _SERVER_RESPOND_MESSAGES['respond_to_check_if_user_in_conference']
+        
         #
         elif query_family == 'users':
             if query_id == _QL_USERS['add_new_user']:
@@ -421,37 +551,64 @@ class Main_DBM(DB_Manager):
         self.conn.commit()
 
         # create db file and table 
-        util.create_db_users_chat_file(new_db_chat_path)
+        util.create_file(new_db_chat_path)
         chat_db = Chat_DB(new_db_chat_path)
         chat_db._init_table()
-        
-
-    def _create_new_room(self, query_content: dict) -> None:
-        pass
 
 
     def _add_message(self, query_content: dict) -> bool:
-        #sender = query_content['sender']
         chat_id = query_content['chat_id']
-        #message = query_content['message']
+        db_path = _DBS_USERS_CHATS_DATA['path'] + chat_id + '.db'
+        db = Chat_DB(db_path)
+        db.add_message(query_content)
+        
         # check if db with chat messages is in recent files
         # if not - getting the location of chats file by looking it up in main_db
         # and adding it to recent files
-        db_chat_file_data = recent_file_storage.find_files(alias=chat_id)
-        chat_file_path = ''
-        if not len(db_chat_file_data):
-            chat_file_path = self.cur.execute(
-                f'''
-                    select path from chats_list where
-                    chat_id = '{chat_id}'
-                '''
-            ).fetchone()[0]
-            recent_file_storage.push_file(file_path=chat_file_path, type='db_users_chat', alias=chat_id)
-        else:
-            chat_file_path = db_chat_file_data[0].file_path
+        #db_chat_file_data = recent_file_storage.find_files(alias=chat_id)
+        #chat_file_path = ''
+        #if not len(db_chat_file_data):
+        #    chat_file_path = self.cur.execute(
+        #        f'''
+        #            select path from chats_list where
+        #            chat_id = '{chat_id}'
+        #        '''
+        #    ).fetchone()[0]
+        #    recent_file_storage.push_file(file_path=chat_file_path, type='db_users_chat', alias=chat_id)
+        #else:
+        #    chat_file_path = db_chat_file_data[0].file_path
+        #
+        #chat_db = Chat_DB(chat_file_path)
+        #chat_db.add_message(query_content)
 
-        chat_db = Chat_DB(chat_file_path)
-        chat_db.add_message(query_content)
+
+    # ----------------------------------------------------
+    # implemenation for queries related to conferences
+    # ----------------------------------------------------
+
+    def _create_new_conference(self, query_content: dict):
+        name = query_content['conference_name']
+        creator = query_content['creator']
+        users_ids = query_content['users_ids']
+        # prepare db file
+        db_directory = _DBS_CONFERENCES_CHATS_DATA['path']
+        new_conference_id = util.make_conference_name(name)
+        db_path = db_directory + new_conference_id + '.db'
+        util.create_file(db_path)
+        # update conferences list
+        self.cur.execute(
+            f'''
+                insert into conferences_list(conference_id, creator, path_to_db)
+                values(?, ?, ?)
+            ''',
+            (new_conference_id, creator, db_path)
+        )
+        self.conn.commit()
+
+        # init conference db tables
+        Conference_DB(db_path).init_tables(new_conference_id, creator, users_ids)
+
+        
 
 
     # ----------------------------------------------------
@@ -553,7 +710,7 @@ class Main_DBM(DB_Manager):
     
 
 def main():
-    exit()
+    Main_DBM().load_all_conferences()
 
 
 

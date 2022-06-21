@@ -26,6 +26,17 @@
             "get_last_general_messages":        9       
         },
 
+        "conferences":
+        {
+            "query_family":         "conferences",
+
+            "create_conference":            0,
+            "load_all_conferences":         1,
+            "get_last_conference_messages": 2,
+            "add_conference_message":       3,
+            "check_if_user_in_conference":  4
+        },
+
         "message_fetch_indexes":
         {
             "chat_data": 
@@ -46,6 +57,16 @@
                 "sender":       2,
                 "content":      3,
                 "visible_flag": 4
+            },
+
+            "conference_chat_data":
+            {
+                "id":               0,
+                "date":             1,
+                "sender":           2,
+                "content":          3,
+                "visible_flag":     4,
+                "conference_name":  5
             }
         },
 
@@ -111,8 +132,20 @@
         "add_new_user_form":
         {
             "path": "/Users/mikolajbrozek/projekt-python/chat/src/chat/client/uis/add_new_user_form.ui",
-            "widget_width": 400,
-            "widget_height": 650
+            "widget_width": 715,
+            "widget_height": 759,
+
+            "issue_messages":
+            {
+                    "id_issue":                 "Your id is incorrect",
+                    "login_issue_in_use":       "This login is unavailable",
+                    "login_issue_incorrect":    "Your login is incorrect",
+                    "password_issue_length":    "Your password it too short",
+                    "password_issue_match":     "Passwords don't match",
+                    "name_issue":               "Your name is incorrect",
+                    "surname_issue":            "Your surname is incorrect",
+                    "position_issue":           "This position is incorrect"
+            }
         },
 
         "menu":
@@ -151,9 +184,10 @@
 
     "pending_notifications":
     {
-        "add_message_pn":           0,
-        "change_status_pn":         1,
-        "add_general_message_pn":   2
+        "add_message_pn":               0,
+        "change_status_pn":             1,
+        "add_general_message_pn":       2,
+        "add_conference_message_pn":    3
     },
 
     "user_data_indexes":
@@ -164,7 +198,15 @@
         "surname":      3,
         "position":     4,
         "description":  5,
-        "image":        6
+        "image":        6,
+        "contact_type": 7
+    },
+
+    "contact_types":
+    {
+        "user":         0,
+        "general":      1,
+        "conference":   2
     }
 }
 
