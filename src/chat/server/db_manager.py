@@ -476,9 +476,6 @@ class Main_DBM(DB_Manager):
             elif query_id == _QL_MESSAGES['create_new_chat']:
                 self._create_new_chat(query_content)
                 return _SERVER_RESPOND_MESSAGES['respond_to_create_new_chat']
-            elif query_id == _QL_MESSAGES['create_new_room']: 
-                self._create_new_room(query_content)
-                return -1
             elif query_id == _QL_MESSAGES['add_message']: 
                 self._add_message(query_content)
                 return _SERVER_RESPOND_MESSAGES['respond_to_add_message']
@@ -562,25 +559,6 @@ class Main_DBM(DB_Manager):
         db = Chat_DB(db_path)
         db.add_message(query_content)
         
-        # check if db with chat messages is in recent files
-        # if not - getting the location of chats file by looking it up in main_db
-        # and adding it to recent files
-        #db_chat_file_data = recent_file_storage.find_files(alias=chat_id)
-        #chat_file_path = ''
-        #if not len(db_chat_file_data):
-        #    chat_file_path = self.cur.execute(
-        #        f'''
-        #            select path from chats_list where
-        #            chat_id = '{chat_id}'
-        #        '''
-        #    ).fetchone()[0]
-        #    recent_file_storage.push_file(file_path=chat_file_path, type='db_users_chat', alias=chat_id)
-        #else:
-        #    chat_file_path = db_chat_file_data[0].file_path
-        #
-        #chat_db = Chat_DB(chat_file_path)
-        #chat_db.add_message(query_content)
-
 
     # ----------------------------------------------------
     # implemenation for queries related to conferences

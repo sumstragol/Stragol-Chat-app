@@ -879,14 +879,17 @@
  </widget>
  <tabstops>
   <tabstop>le_id</tabstop>
-  <tabstop>role_box</tabstop>
   <tabstop>le_login</tabstop>
   <tabstop>le_password</tabstop>
   <tabstop>le_retype_password</tabstop>
+  <tabstop>le_name</tabstop>
   <tabstop>le_surname</tabstop>
-  <tabstop>le_position</tabstop>
   <tabstop>le_description</tabstop>
   <tabstop>le_image_link</tabstop>
+  <tabstop>role_box</tabstop>
+  <tabstop>le_position</tabstop>
+  <tabstop>button_add_user</tabstop>
+  <tabstop>button_back</tabstop>
  </tabstops>
  <resources/>
  <connections/>

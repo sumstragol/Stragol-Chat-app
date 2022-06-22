@@ -1,6 +1,5 @@
 # developing only
 
-from re import M
 import threading
 from overrides import overrides
 import functools
@@ -82,6 +81,10 @@ def handle_pns():
             global chat_pages
             widget = chat_pages.get_chat_page(user_id)
             if widget:
+                # both users at the same time opened chat
+                # (when chat files are created yet)
+                if not widget.get_chat_id():
+                    widget.reset_chat_data()
                 widget.append_single_message(message_content=pn.data)
         elif pn.data_id == _PNSL['change_status_pn']:
             user_id = pn.data['user_id']
@@ -491,6 +494,21 @@ class Chat(QWidget, Page):
     @overrides
     def on_switch(self):
         self.init_chat_data_load()
+
+
+    #
+    def reset_chat_data(self):
+        chat_id = client.send_check_if_chat_exists(self.myself_user_id, self.other_user_id)
+        self.chat_id = chat_id
+        self.button_send_message.clicked.disconnect(self.send_first_message)
+        self.le_input_message.returnPressed.disconnect(self.send_first_message)
+        self.button_send_message.clicked.connect(self.send_message)
+        self.le_input_message.returnPressed.connect(self.send_message)
+        self.users_have_chated = True
+
+
+    def get_chat_id(self):
+        return self.chat_id
 
 
     def init_chat_data_load(self):
@@ -1016,6 +1034,10 @@ class Menu(QWidget, Page):
                 return
 
 
+    def add_contact(self):
+        pass
+
+
     def load_contacts(self):
         if self.lw_contacts.count() != 0:
             return
@@ -1079,7 +1101,7 @@ class Menu(QWidget, Page):
 
 
     def open_profile(self):
-        if pages_manager.if_widget_exists(pages_manager) is None:
+        if not pages_manager.if_widget_exists(pages_manager):
             pages_manager.add_widget(
                 {
                     'alias':    'profile',
@@ -1182,8 +1204,6 @@ class Profile(QWidget, Page):
             pages_manager.switch_to_widget("menu")
 
 
-
-
     def init_user_data(self):
         # admin prefix starts with 0000
         if myself[:4] != '0000':
@@ -1251,12 +1271,6 @@ class Profile(QWidget, Page):
 #
 #
 # ----------------------------------------------------
-
-
-
-
-
-
 
 
 
