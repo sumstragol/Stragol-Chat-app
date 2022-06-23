@@ -119,7 +119,6 @@ main_db = dbm.Main_DBM()
 #
 def disconnect_handling(conn, addr):
     print(f"[SERVER] {addr} has disconnected.")
-    conn.shutdown()
     conn.close()
 
 
@@ -177,19 +176,23 @@ def respond_to_client(respond_id: int, data: dict, conn, addr):
         login = data['login']
         password = data['password']
         result = dbm.Main_DBM().handle_login_request(login, password)
-        response['answer'] = result
         # if the result is user_id - user have successfully logged in
-        # list this user as connected
+        # list this user as connected if its not logged already 
+        # on another instance
         if result is not None:
-            # append to connected users
-            users_list.append_user(User(result, conn, addr))
-            # send pn to other connected users
-            pn_type = _PN['change_status_pn']
-            pn_data = {
-                'user_id':  result,
-                'status':   _ASL['active']
-            }
-            _send_push_notification_to_all_but(result, pn_type, pn_data)
+            if users_list.find_user(result) is not None:
+                result = None
+            else:
+                # append to connected users
+                users_list.append_user(User(result, conn, addr))
+                # send pn to other connected users
+                pn_type = _PN['change_status_pn']
+                pn_data = {
+                    'user_id':  result,
+                    'status':   _ASL['active']
+                }
+                _send_push_notification_to_all_but(result, pn_type, pn_data)
+        response['answer'] = result
         return _encode_any_content(response)
 
     elif respond_id == _SERVER_RESPOND_MESSAGES['respond_to_logout_request']:

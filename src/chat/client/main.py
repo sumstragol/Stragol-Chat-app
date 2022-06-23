@@ -11,6 +11,7 @@ import PyQt5.QtWidgets
 from PyQt5.QtWidgets import QDialog, QApplication, QWidget, QMainWindow, QListWidget, QListWidgetItem, QMessageBox, \
     QDialogButtonBox, QInputDialog, QLineEdit
 import PyQt5.QtCore
+from PyQt5.QtCore import QThread
 from config import config_handler
 import client
 from plyer import notification
@@ -126,9 +127,11 @@ def handle_pns():
             widget = pages_manager.get_widget(conference_name)
             if widget is not None:
                 widget.append_single_message(message_content=pn.data)
-
     
     client.pns_storage.clear()
+
+
+
 
 
 def _listen_to_any_pns(cv):
@@ -139,7 +142,6 @@ def _listen_to_any_pns(cv):
             handle_pns()
     condition_var.release()
     return
-
 
 
 
@@ -162,9 +164,6 @@ def stop():
     condition_var.notify_all()
     condition_var.release()
     
-
-
-
 
 
 
@@ -957,7 +956,6 @@ class Menu(QWidget, Page):
 
 
     def make_conference(self):
-        print(self.selected_items_set)
         # select at least one item
         if not len(self.lw_contacts.selectedItems()):
             return
