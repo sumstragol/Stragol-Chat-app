@@ -41,11 +41,16 @@ def get_config_data():
 # ----------------------------------------------------
 # implents getters for any config part
 # ----------------------------------------------------
-#
-# 
-#
+# in every case first specify the key which matches with
+# the key in a JSON file, then call get_config_data()
+# to retrive value / object of that key.
+# if key one expands to more keys (object containing object)
+# specify which next key to fetch. if no key is specified in that
+# case return whole object.  
+
 def get_server_data():
-    return get_config_data()['server_info']
+    key = 'server_info'
+    return get_config_data()[key]
     
 
 #
@@ -89,6 +94,15 @@ def get_pending_notifications_list(type: str = None):
 #
 #
 #
+def get_pending_notifications_indexes_list(type: str = None):
+    key = 'pending_notications_indexes'
+    data = get_config_data()[key]
+    return _type_of_data(type, data)
+
+
+#
+#
+#
 def get_user_data_indexes():
     key = 'user_data_indexes'
     return get_config_data()[key]
@@ -106,7 +120,6 @@ def get_contact_types():
 #
 #
 def main():
-    print("you should not be here!")
     exit()
 
 

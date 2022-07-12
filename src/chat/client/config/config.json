@@ -187,7 +187,17 @@
         "add_message_pn":               0,
         "change_status_pn":             1,
         "add_general_message_pn":       2,
-        "add_conference_message_pn":    3
+        "add_conference_message_pn":    3,
+        "chat_creation_pn":             4
+    },
+
+    "pending_notications_indexes":
+    {
+        "chat_creation_pn":
+        {
+            "user_chat":        0,
+            "conference_chat":  1
+        }
     },
 
     "user_data_indexes":

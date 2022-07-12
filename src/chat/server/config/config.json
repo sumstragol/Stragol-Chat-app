@@ -152,13 +152,16 @@
         "add_message_pn":               0,
         "change_status_pn":             1,
         "add_general_message_pn":       2,
-        "add_conference_message_pn":    3
+        "add_conference_message_pn":    3,
+        "chat_creation_pn":             4
     },
 
-    "recent_files_data":
+    "pending_notications_indexes":
     {
-        "max_possible_storage_size":    1000,
-        "init_storage_size":            20,
-        "storage_size_margin":          1
+        "chat_creation_pn":
+        {
+            "user_chat":        0,
+            "conference_chat":  1
+        }
     }
 }

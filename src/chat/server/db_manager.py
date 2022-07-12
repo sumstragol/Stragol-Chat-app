@@ -357,8 +357,8 @@ class Main_DBM(DB_Manager):
             '''
         ).fetchone()
 
-        if result is None: return False
-        else: return True
+        if result is None: return ''
+        else: return result[0]
 
     # ----------------------------------------------------
     # SERVER RESPONSE - LOGIN FORM
@@ -688,7 +688,7 @@ class Main_DBM(DB_Manager):
     
 
 def main():
-    Main_DBM().load_all_conferences()
+    exit()
 
 
 

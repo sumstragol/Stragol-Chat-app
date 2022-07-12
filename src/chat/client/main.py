@@ -45,6 +45,7 @@ _MFI_CD = config_handler.get_queries_list('message_fetch_indexes')['chat_data']
 _MFI_GCD = config_handler.get_queries_list('message_fetch_indexes')['general_chat_data']
 _MFI_CCD = config_handler.get_queries_list('message_fetch_indexes')['conference_chat_data']
 _PNSL = config_handler.get_pending_notifications_list()
+_PNI = config_handler.get_pending_notifications_indexes_list()
 _CT = config_handler.get_contact_types()
 # for all the while loops 
 # swtiches to false on app quit
@@ -87,6 +88,7 @@ def handle_pns():
                 if not widget.get_chat_id():
                     widget.reset_chat_data()
                 widget.append_single_message(message_content=pn.data)
+
         elif pn.data_id == _PNSL['change_status_pn']:
             user_id = pn.data['user_id']
             status = pn.data['status']
@@ -104,6 +106,7 @@ def handle_pns():
                 notify_user(f"{name} {surname}", notify_message)    
             # update status in menu page
             pages_manager.get_widget("menu").set_other_status(user_id, status)
+
         elif pn.data_id == _PNSL['add_general_message_pn']:
             user_id = pn.data[_MFI_GCD['sender']]
             # notify user
@@ -115,6 +118,7 @@ def handle_pns():
             widget = pages_manager.get_widget("general")
             if widget is not None:
                 widget.append_single_message(message_content=pn.data)
+
         elif pn.data_id == _PNSL['add_conference_message_pn']:
             user_id = pn.data[_MFI_CCD['sender']]
             conference_name = pn.data[_MFI_CCD['conference_name']]
@@ -122,12 +126,27 @@ def handle_pns():
             user_contact_item = pages_manager.get_widget("menu").get_contact_item(user_id)
             name = user_contact_item.data(PyQt5.QtCore.Qt.UserRole + user_data_indexes['name'])
             surname = user_contact_item.data(PyQt5.QtCore.Qt.UserRole + user_data_indexes['surname'])
-            notify_user(f"{name} {surname} to {conference_name}", pn.data[_MFI_CCD['content']])
+            notify_user(f"{name} {surname} to conference {conference_name}", pn.data[_MFI_CCD['content']])
             # append to general chat page if its opened
             widget = pages_manager.get_widget(conference_name)
             if widget is not None:
                 widget.append_single_message(message_content=pn.data)
-    
+
+        elif pn.data_id == _PNSL['chat_creation_pn']:
+            # refresh contacts list
+            pages_manager.get_widget("menu").reload_contacts()
+            # send a notification
+            # it can be a user_id or conference name
+            id = pn.data['data']
+            if pn.data['type'] == _PNI['chat_creation_pn']['user_chat']:
+                user_contact_item = pages_manager.get_widget("menu").get_contact_item(id)
+                name = user_contact_item.data(PyQt5.QtCore.Qt.UserRole + user_data_indexes['name'])
+                surname = user_contact_item.data(PyQt5.QtCore.Qt.UserRole + user_data_indexes['surname'])
+                notify_user("New user", f"Welcome {name} {surname}!")
+            elif pn.data['type'] == _PNI['chat_creation_pn']['conference_chat']:
+                notify_user("New conference", f"Conference {id} is now available!")
+
+
     client.pns_storage.clear()
 
 
@@ -862,6 +881,7 @@ class Menu(QWidget, Page):
     def __init__(self) -> None:
         super(Menu, self).__init__()
         loadUi(menu_data['path'], self)
+        self.contacts_loaded = False
         self.lw_contacts.itemClicked.connect(self.open_chat)
         self.button_profile.clicked.connect(functools.partial(self.open_profile))
         self.le_search_bar.textChanged.connect(self.filtr_contacts)
@@ -1032,13 +1052,11 @@ class Menu(QWidget, Page):
                 return
 
 
-    def add_contact(self):
-        pass
-
-
     def load_contacts(self):
-        if self.lw_contacts.count() != 0:
+        if self.contacts_loaded:
             return
+        
+        self.contacts_loaded = True
 
         # general chat
         icon = self.get_status_icon(_ASL['active'])
@@ -1087,6 +1105,12 @@ class Menu(QWidget, Page):
             list_item.setData(PyQt5.QtCore.Qt.UserRole + user_data_indexes['surname'], surname)
             list_item.setData(PyQt5.QtCore.Qt.UserRole + user_data_indexes['contact_type'], _CT["user"])
             self.lw_contacts.addItem(list_item)
+
+
+    def reload_contacts(self):
+        self.lw_contacts.clear()
+        self.contacts_loaded = False
+        self.load_contacts()
 
 
     # for other classes or places where data hidden in contact is needed

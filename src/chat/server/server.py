@@ -27,6 +27,7 @@ _HEADER_SIZE = _SERVER_SETTINGS['header_size']
 _FORMAT = _SERVER_SETTINGS['format']
 _SERVER_RESPOND_MESSAGES = config_handler.get_server_respond_messages()
 _PN = config_handler.get_pending_notifications_list()
+_PNI = config_handler.get_pending_notifications_indexes_list()
 _ASL = config_handler.get_active_statuses_list('statuses')
 _DBS_USERS_CHATS_DATA = config_handler.get_dbs_users_chat_data()
 _DBS_CONFERENCES_CHATS_DATA = config_handler.get_dbs_conferences_chats_data()
@@ -146,6 +147,13 @@ def _send_push_notification(user: User, pn_type, pn_data):
     header, content = _encode_any_content(message)
     user.conn.send(header)
     user.conn.send(content)
+
+#
+#
+#
+def _send_push_notification_to_all(pn_type, pn_data):
+    for single_user in users_list:
+        _send_push_notification(single_user, pn_type, pn_data)
 
 
 #
@@ -326,6 +334,14 @@ def respond_to_client(respond_id: int, data: dict, conn, addr):
     # ----------------------------------------------------
 
     elif respond_id == _SERVER_RESPOND_MESSAGES['respond_to_create_conference']:
+        pn_type = _PN['chat_creation_pn']
+        # type is required to extract the chat type
+        # whether if its user or conference 
+        pn_data = {
+            'data': data['conference_name'],
+            'type': _PNI['chat_creation_pn']['conference_chat']
+        }
+        _send_push_notification_to_all(pn_type, pn_data)
         response['answer'] = True
         return _encode_any_content(response)
 
@@ -384,6 +400,16 @@ def respond_to_client(respond_id: int, data: dict, conn, addr):
     elif respond_id == _SERVER_RESPOND_MESSAGES['respond_to_add_new_user']:
         login = data['login']
         answer = dbm.Main_DBM().check_if_user_successfully_added(login)
+        # answer is now user_id 
+        # pn to inform all other users that new user has been added
+        # list of contacts will be refreshed
+        pn_type = _PN['chat_creation_pn']
+        pn_data = {
+            'data': answer,
+            'type': _PNI['chat_creation_pn']['user_chat']
+        }
+        _send_push_notification_to_all(pn_type, pn_data)
+
         response['answer'] = answer
         return _encode_any_content(response)
     
